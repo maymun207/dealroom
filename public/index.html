@@ -10,7 +10,7 @@
 <body>
   <!-- ÜST BAR (SABİT: Logo + Her Yerden Anında Arama + Holding/Şirket Ekle + Supabase & Kullanıcı) -->
   <header class="topbar" id="topbar" style="display: none;">
-    <div class="brand-cluster" onclick="window.app.openAuthModal()" title="Giriş Ekranına Dön">
+    <div class="brand-cluster" onclick="window.app.goHomeDashboard()" title="Ana Sayfaya Dön">
       <div style="width: 42px; height: 36px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center;">
         <img src="/logo.jpg" alt="DealRoom Logo" style="width: 54px; height: auto; margin-top: -4px; mix-blend-mode: multiply;" />
       </div>
@@ -33,8 +33,8 @@
     </div>
 
     <div class="topbar-actions">
-      <button class="btn btn-outline btn-sm" id="userBadgeBtn" onclick="window.app.openAuthModal()" title="Oturum Bilgisi / Satıcı Değiştir">
-        👤 <span id="activeUserEmail">hulya@yapra.ai</span>
+      <button class="btn btn-outline btn-sm" id="userBadgeBtn" onclick="window.app.handleSignOut()" title="Supabase Oturumunu Kapat">
+        👤 <span id="activeUserEmail">Giriş Yapılmadı</span>
       </button>
     </div>
   </header>

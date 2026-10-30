@@ -63,6 +63,11 @@ class DealRoomApp {
     this.ctaQuery = '';
     this.ctaBelongsToHolding = 'yes'; // 'yes' | 'no'
     this.supabaseClient = null;
+    this.accessToken = null;
+    this.authMode = 'login'; // 'login' | 'signup' | 'otp'
+    this.authError = '';
+    this.authSuccess = '';
+    this.authLoading = false;
     this.pendingDroppedFile = null;
     this.toastMessage = null;
 
@@ -73,16 +78,43 @@ class DealRoomApp {
     this.setupDialogLightDismissFallback();
     this.setupGlobalSearch();
     await this.initCloudConfig();
-    await this.loadDatabase();
 
-    // Kayıtlı satıcı oturumu var mı kontrol et
-    const savedSellerStr = localStorage.getItem('dealroom_active_seller');
-    if (savedSellerStr) {
+    // Gerçek Supabase Auth oturumunu kontrol et
+    if (this.supabaseClient) {
       try {
-        this.currentSeller = JSON.parse(savedSellerStr);
-      } catch (e) {
-        this.currentSeller = null;
+        const {
+          data: { session }
+        } = await this.supabaseClient.auth.getSession();
+        if (session && session.user) {
+          this.accessToken = session.access_token;
+          await this.loadDatabase();
+          await this.syncAuthUserToSeller(session.user);
+        }
+      } catch (authErr) {
+        console.warn('Supabase Auth session check warning:', authErr);
       }
+
+      this.supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (session && session.user) {
+          this.accessToken = session.access_token;
+          if (!this.currentSeller || this.currentSeller.email.toLowerCase() !== session.user.email.toLowerCase()) {
+            await this.loadDatabase();
+            await this.syncAuthUserToSeller(session.user);
+            this.currentView = 'funnel';
+            document.getElementById('topbar').style.display = 'flex';
+            document.getElementById('aiFabBtn').style.display = 'flex';
+            this.updateUserHeader();
+            this.render();
+          }
+        } else if (event === 'SIGNED_OUT') {
+          this.accessToken = null;
+          this.currentSeller = null;
+          this.currentView = 'auth';
+          document.getElementById('topbar').style.display = 'none';
+          document.getElementById('aiFabBtn').style.display = 'none';
+          this.render();
+        }
+      });
     }
 
     if (!this.currentSeller) {
@@ -190,9 +222,10 @@ class DealRoomApp {
   }
 
   getSupabaseHeaders(extra = {}) {
+    const bearer = this.accessToken || this.sbKey;
     return {
       apikey: this.sbKey,
-      Authorization: `Bearer ${this.sbKey}`,
+      Authorization: `Bearer ${bearer}`,
       'Content-Type': 'application/json',
       ...extra
     };
@@ -578,10 +611,53 @@ class DealRoomApp {
   }
 
   // ============================================================================
-  // EKRAN 0: HAVADA ASILI LOGO + ALTINDA SADE E-POSTA CTA KUTUSU
+  // EKRAN 0: GERÇEK SUPABASE AUTHENTICATION (GİRİŞ YAP / KAYIT OL / OTP)
   // ============================================================================
+  async syncAuthUserToSeller(authUser) {
+    if (!authUser || !authUser.email) return;
+    const email = authUser.email.trim().toLowerCase();
+    this.db.sellers = this.db.sellers || [];
+    let seller = this.db.sellers.find((s) => (s.email || '').toLowerCase() === email);
+
+    if (!seller) {
+      const metaName = authUser.user_metadata && (authUser.user_metadata.full_name || authUser.user_metadata.name);
+      const rawPrefix = email.split('@')[0].replace(/[._-]/g, ' ');
+      const formattedName =
+        metaName ||
+        rawPrefix
+          .split(' ')
+          .filter(Boolean)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+
+      seller = {
+        id: authUser.id || 's-' + Date.now(),
+        name: formattedName || email,
+        email,
+        role: 'Satış Yöneticisi',
+        brand_focus: email.endsWith('@ardictech.com') ? 'ArdicTech' : 'Her İkisi',
+        created_at: new Date().toISOString()
+      };
+      this.db.sellers.push(seller);
+      await this.persistDatabase();
+    }
+
+    this.currentSeller = seller;
+    localStorage.setItem('dealroom_last_email', email);
+  }
+
+  setAuthMode(mode) {
+    this.authMode = mode;
+    this.authError = '';
+    this.authSuccess = '';
+    this.pendingAuthEmail = null;
+    this.render();
+  }
+
   renderSellerAuthScreen() {
-    // Eğer yeni kullanıcı için doğrulama kodu gönderildiyse kod girme adımını göster
+    const rememberedEmail = localStorage.getItem('dealroom_last_email') || '';
+
+    // Eğer OTP kodu gönderildiyse 6 haneli Supabase OTP doğrulama ekranı
     if (this.pendingAuthEmail) {
       return `
         <div class="auth-floating-wrapper">
@@ -592,29 +668,31 @@ class DealRoomApp {
           />
 
           <div class="auth-screen-card" style="text-align: center;">
-            <h2 style="font-size: 1.3rem; font-weight: 800; color: #0D1B3E; margin-bottom: 8px;">
-              Doğrulama Kodunu Giriniz
+            <h2 style="font-size: 1.25rem; font-weight: 800; color: #0D1B3E; margin-bottom: 8px;">
+              E-posta Doğrulama Kodu
             </h2>
-            <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 18px;">
-              <strong>${this.pendingAuthEmail}</strong> adresine gönderilen 6 haneli kodu giriniz.
+            <p style="font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 16px;">
+              Supabase tarafından <strong>${this.pendingAuthEmail}</strong> adresine gönderilen doğrulama kodunu giriniz.
             </p>
 
-            <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 12px; margin-bottom: 18px; font-size: 0.9rem; color: #162B6F;">
-              📩 Gönderilen Kod: <strong style="font-size: 1.15rem; letter-spacing: 2px;">${this.pendingAuthCode}</strong>
-            </div>
+            ${
+              this.authError
+                ? `<div style="background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 14px;">⚠️ ${this.authError}</div>`
+                : ''
+            }
 
-            <form onsubmit="window.app.handleVerifyEmailCode(event)">
+            <form onsubmit="window.app.handleVerifySupabaseOtp(event)">
               <input
                 type="text"
                 id="authCodeInput"
                 class="auth-large-input"
-                style="font-weight: 700; letter-spacing: 5px; margin-bottom: 16px;"
+                style="font-weight: 700; letter-spacing: 4px; margin-bottom: 16px;"
                 required
-                placeholder="6 Haneli Kod"
-                value="${this.pendingAuthCode}"
+                placeholder="Doğrulama Kodu"
+                autofocus
               />
-              <button type="submit" class="btn btn-logo-gradient" style="width: 100%; padding: 17px; font-size: 1.1rem;">
-                Onayla ve Giriş Yap ➔
+              <button type="submit" class="btn btn-logo-gradient" style="width: 100%; padding: 17px; font-size: 1.08rem;" ${this.authLoading ? 'disabled' : ''}>
+                ${this.authLoading ? 'Doğrulanıyor...' : 'Onayla ve Giriş Yap ➔'}
               </button>
             </form>
 
@@ -622,20 +700,14 @@ class DealRoomApp {
               type="button"
               class="btn btn-outline btn-sm"
               style="margin-top: 14px; border: none;"
-              onclick="window.app.pendingAuthEmail = null; window.app.render();"
+              onclick="window.app.pendingAuthEmail = null; window.app.authError = ''; window.app.render();"
             >
-              ← Farklı bir e-posta adresi gir
+              ← Giriş ekranına dön
             </button>
           </div>
         </div>
       `;
     }
-
-    // VARSAYILAN: Bembeyaz sayfa üzerinde havada asılı DealRoom logosu + altında e-posta CTA kutusu
-    const rememberedEmail = localStorage.getItem('dealroom_last_email') || '';
-    const sellerEmailsDatalist = (this.db.sellers || [])
-      .map((s) => `<option value="${s.email}">${s.name}</option>`)
-      .join('');
 
     return `
       <div class="auth-floating-wrapper">
@@ -646,29 +718,101 @@ class DealRoomApp {
         />
 
         <div class="auth-screen-card" style="text-align: center;">
-          <p style="font-size: 1.18rem; font-weight: 600; color: #1E293B; margin-bottom: 22px;">
-            E-posta adresinizi giriniz
-          </p>
+          <!-- Giriş / Yeni Kayıt / Şifresiz OTP Seçici -->
+          <div style="display: inline-flex; gap: 6px; padding: 4px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 999px; margin-bottom: 20px;">
+            <button
+              type="button"
+              onclick="window.app.setAuthMode('login')"
+              style="padding: 7px 16px; border-radius: 999px; border: none; font-size: 0.82rem; font-weight: 700; cursor: pointer; background: ${this.authMode === 'login' ? '#FFFFFF' : 'transparent'}; color: ${this.authMode === 'login' ? '#0D1B3E' : '#64748B'}; box-shadow: ${this.authMode === 'login' ? '0 2px 8px rgba(15,23,42,0.08)' : 'none'};"
+            >
+              🔑 Giriş Yap
+            </button>
+            <button
+              type="button"
+              onclick="window.app.setAuthMode('signup')"
+              style="padding: 7px 16px; border-radius: 999px; border: none; font-size: 0.82rem; font-weight: 700; cursor: pointer; background: ${this.authMode === 'signup' ? '#FFFFFF' : 'transparent'}; color: ${this.authMode === 'signup' ? '#0D1B3E' : '#64748B'}; box-shadow: ${this.authMode === 'signup' ? '0 2px 8px rgba(15,23,42,0.08)' : 'none'};"
+            >
+              ✨ Yeni Hesap
+            </button>
+            <button
+              type="button"
+              onclick="window.app.setAuthMode('otp')"
+              style="padding: 7px 14px; border-radius: 999px; border: none; font-size: 0.82rem; font-weight: 700; cursor: pointer; background: ${this.authMode === 'otp' ? '#FFFFFF' : 'transparent'}; color: ${this.authMode === 'otp' ? '#0D1B3E' : '#64748B'}; box-shadow: ${this.authMode === 'otp' ? '0 2px 8px rgba(15,23,42,0.08)' : 'none'};"
+            >
+              📩 E-posta Kodu
+            </button>
+          </div>
 
-          <form onsubmit="window.app.handleSimpleEmailAuth(event)">
+          ${
+            this.authError
+              ? `<div style="background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 14px;">⚠️ ${this.authError}</div>`
+              : ''
+          }
+          ${
+            this.authSuccess
+              ? `<div style="background: #ECFDF5; border: 1px solid #A7F3D0; color: #059669; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 14px;">✅ ${this.authSuccess}</div>`
+              : ''
+          }
+
+          <form onsubmit="window.app.handleSupabaseAuthSubmit(event)">
+            ${
+              this.authMode === 'signup'
+                ? `
+              <input
+                type="text"
+                id="authFullNameInput"
+                name="name"
+                autocomplete="name"
+                class="auth-large-input"
+                style="margin-bottom: 12px;"
+                required
+                placeholder="Ad Soyad (Örn: Hülya Kahveci)"
+              />
+            `
+                : ''
+            }
+
             <input
               type="email"
               id="simpleAuthEmailInput"
               name="email"
               autocomplete="email"
-              list="registeredSellersEmails"
               class="auth-large-input"
-              style="margin-bottom: 18px;"
+              style="margin-bottom: 12px;"
               required
-              placeholder="ornek@sirket.com"
+              placeholder="E-posta adresiniz"
               value="${rememberedEmail}"
               autofocus
             />
-            <datalist id="registeredSellersEmails">
-              ${sellerEmailsDatalist}
-            </datalist>
-            <button type="submit" class="btn btn-logo-gradient" style="width: 100%; padding: 18px; font-size: 1.12rem;">
-              Devam Et ➔
+
+            ${
+              this.authMode !== 'otp'
+                ? `
+              <input
+                type="password"
+                id="simpleAuthPasswordInput"
+                name="password"
+                autocomplete="${this.authMode === 'signup' ? 'new-password' : 'current-password'}"
+                class="auth-large-input"
+                style="margin-bottom: 16px;"
+                required
+                minlength="6"
+                placeholder="Şifreniz"
+              />
+            `
+                : ''
+            }
+
+            <button type="submit" class="btn btn-logo-gradient" style="width: 100%; padding: 18px; font-size: 1.08rem;" ${this.authLoading ? 'disabled' : ''}>
+              ${
+                this.authLoading
+                  ? 'İşleniyor...'
+                  : this.authMode === 'signup'
+                  ? 'Kayıt Ol ve Başla ➔'
+                  : this.authMode === 'otp'
+                  ? 'E-postama Giriş Kodu Gönder ➔'
+                  : 'Giriş Yap ➔'
+              }
             </button>
           </form>
         </div>
@@ -676,71 +820,137 @@ class DealRoomApp {
     `;
   }
 
-  loginAsSeller(sellerId) {
-    const s = (this.db.sellers || []).find((x) => x.id === sellerId);
-    if (!s) return;
-    this.currentSeller = s;
+  async handleSupabaseAuthSubmit(e) {
+    e.preventDefault();
+    if (!this.supabaseClient) {
+      this.authError = 'Supabase bağlantısı başlatılamadı.';
+      this.render();
+      return;
+    }
+
+    const email = document.getElementById('simpleAuthEmailInput').value.trim().toLowerCase();
+    const passwordEl = document.getElementById('simpleAuthPasswordInput');
+    const password = passwordEl ? passwordEl.value : '';
+    const fullNameEl = document.getElementById('authFullNameInput');
+    const fullName = fullNameEl ? fullNameEl.value.trim() : '';
+
+    this.authError = '';
+    this.authSuccess = '';
+    this.authLoading = true;
+    this.render();
+
+    try {
+      if (this.authMode === 'otp') {
+        const { error } = await this.supabaseClient.auth.signInWithOtp({ email });
+        this.authLoading = false;
+        if (error) {
+          this.authError = error.message;
+        } else {
+          this.pendingAuthEmail = email;
+        }
+        this.render();
+        return;
+      }
+
+      if (this.authMode === 'signup') {
+        const { data, error } = await this.supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName }
+          }
+        });
+        this.authLoading = false;
+        if (error) {
+          this.authError = error.message;
+          this.render();
+          return;
+        }
+        if (data && data.session && data.user) {
+          this.accessToken = data.session.access_token;
+          await this.loadDatabase();
+          await this.syncAuthUserToSeller(data.user);
+          this.completeSignInTransition();
+          return;
+        }
+        this.authSuccess = 'Hesabınız oluşturuldu! E-posta onayınız tamamlandıysa şimdi giriş yapabilirsiniz.';
+        this.authMode = 'login';
+        this.render();
+        return;
+      }
+
+      // Default: 'login' with email & password via Supabase Auth
+      const { data, error } = await this.supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+      this.authLoading = false;
+      if (error) {
+        this.authError =
+          error.message === 'Invalid login credentials'
+            ? 'E-posta veya şifre hatalı. Lütfen Supabase Auth bilgilerinizi kontrol edin.'
+            : error.message;
+        this.render();
+        return;
+      }
+
+      if (data && data.session && data.user) {
+        this.accessToken = data.session.access_token;
+        await this.loadDatabase();
+        await this.syncAuthUserToSeller(data.user);
+        this.completeSignInTransition();
+      }
+    } catch (err) {
+      this.authLoading = false;
+      this.authError = err.message || 'Giriş sırasında beklenmeyen bir hata oluştu.';
+      this.render();
+    }
+  }
+
+  async handleVerifySupabaseOtp(e) {
+    e.preventDefault();
+    const token = document.getElementById('authCodeInput').value.trim();
+    if (!token || !this.pendingAuthEmail) return;
+
+    this.authError = '';
+    this.authLoading = true;
+    this.render();
+
+    try {
+      const { data, error } = await this.supabaseClient.auth.verifyOtp({
+        email: this.pendingAuthEmail,
+        token,
+        type: 'email'
+      });
+      this.authLoading = false;
+      if (error) {
+        this.authError = 'Doğrulama kodu geçersiz veya süresi dolmuş: ' + error.message;
+        this.render();
+        return;
+      }
+      if (data && data.session && data.user) {
+        this.accessToken = data.session.access_token;
+        this.pendingAuthEmail = null;
+        await this.loadDatabase();
+        await this.syncAuthUserToSeller(data.user);
+        this.completeSignInTransition();
+      }
+    } catch (err) {
+      this.authLoading = false;
+      this.authError = err.message;
+      this.render();
+    }
+  }
+
+  completeSignInTransition() {
     this.pendingAuthEmail = null;
-    this.pendingAuthCode = null;
-    localStorage.setItem('dealroom_active_seller', JSON.stringify(s));
-    localStorage.setItem('dealroom_last_email', s.email);
+    this.authError = '';
+    this.authSuccess = '';
     this.currentView = 'funnel';
     document.getElementById('topbar').style.display = 'flex';
     document.getElementById('aiFabBtn').style.display = 'flex';
     this.updateUserHeader();
     this.render();
-  }
-
-  handleSimpleEmailAuth(e) {
-    e.preventDefault();
-    const email = document.getElementById('simpleAuthEmailInput').value.trim().toLowerCase();
-    if (!email.endsWith('@yapra.ai') && !email.endsWith('@ardictech.com')) {
-      alert('Sadece @yapra.ai veya @ardictech.com uzantılı kurumsal e-posta adresleriyle giriş yapılabilir.');
-      return;
-    }
-
-    // 1. Eğer sistemde zaten kayıtlıysa (Register ise) -> Hiçbir şey sormadan direkt sayfası açılsın!
-    const existingSeller = (this.db.sellers || []).find((s) => s.email.toLowerCase() === email);
-    if (existingSeller) {
-      this.loginAsSeller(existingSeller.id);
-      return;
-    }
-
-    // 2. Eğer kayıtlı değilse -> E-postasına 6 haneli doğrulama kodu gönderelim
-    this.pendingAuthEmail = email;
-    this.pendingAuthCode = String(Math.floor(100000 + Math.random() * 900000));
-    this.render();
-  }
-
-  async handleVerifyEmailCode(e) {
-    e.preventDefault();
-    const entered = document.getElementById('authCodeInput').value.trim();
-    if (entered !== this.pendingAuthCode) {
-      alert('Girdiğiniz doğrulama kodu hatalı, lütfen tekrar deneyin.');
-      return;
-    }
-
-    const email = this.pendingAuthEmail;
-    const rawPrefix = email.split('@')[0].replace(/[._-]/g, ' ');
-    const formattedName = rawPrefix
-      .split(' ')
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
-
-    const newSeller = {
-      id: 's-' + Date.now(),
-      name: formattedName || email,
-      email,
-      role: 'Satış Yöneticisi',
-      brand_focus: email.endsWith('@yapra.ai') ? 'Yapra.ai' : 'ArdicTech',
-      created_at: new Date().toISOString()
-    };
-
-    this.db.sellers = this.db.sellers || [];
-    this.db.sellers.push(newSeller);
-    await this.persistDatabase();
-    this.loginAsSeller(newSeller.id);
   }
 
   // ============================================================================
@@ -2898,7 +3108,7 @@ class DealRoomApp {
             method: 'POST',
             headers: {
               apikey: this.sbKey,
-              Authorization: `Bearer ${this.sbKey}`,
+              Authorization: `Bearer ${this.accessToken || this.sbKey}`,
               'Content-Type': fileObj.type || 'application/octet-stream',
               'x-upsert': 'true'
             },
@@ -3188,16 +3398,41 @@ class DealRoomApp {
     this.render();
   }
 
-  openAuthModal() {
+  goHomeDashboard() {
+    if (!this.currentSeller) {
+      this.currentView = 'auth';
+      this.render();
+      return;
+    }
+    this.activeCompanyId = null;
+    this.currentView = 'funnel';
+    this.render();
+  }
+
+  async handleSignOut() {
+    if (this.supabaseClient) {
+      try {
+        await this.supabaseClient.auth.signOut();
+      } catch (e) {
+        console.warn('Sign out warning:', e);
+      }
+    }
+    this.accessToken = null;
+    this.currentSeller = null;
     this.currentView = 'auth';
     document.getElementById('topbar').style.display = 'none';
+    document.getElementById('aiFabBtn').style.display = 'none';
     this.render();
+  }
+
+  openAuthModal() {
+    this.handleSignOut();
   }
 
   updateUserHeader() {
     const el = document.getElementById('activeUserEmail');
     if (el && this.currentSeller) {
-      el.textContent = `${this.currentSeller.name} (Değiştir)`;
+      el.textContent = `${this.currentSeller.name} (Çıkış Yap)`;
     }
   }
 
