@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Deal Room — Ürün & Fonksiyon Kılavuzu (Yapra.ai & ArdicTech)</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 15mm 14mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0F172A;
+      background: #FFFFFF;
+      line-height: 1.48;
+      font-size: 10pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+    .header-banner {
+      background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #059669 100%);
+      color: #FFFFFF;
+      padding: 24px 28px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-banner h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+    .header-banner p {
+      font-size: 10pt;
+      opacity: 0.9;
+    }
+    .brand-badges {
+      display: flex;
+      gap: 8px;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 8.5pt;
+      font-weight: 700;
+    }
+    .pill-yapra {
+      background: #ECFDF5;
+      color: #059669;
+    }
+    .pill-ardic {
+      background: #EFF6FF;
+      color: #1D4ED8;
+    }
+    .section-box {
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 15px 18px;
+      margin-bottom: 14px;
+      background: #FFFFFF;
+      break-inside: avoid;
+    }
+    .section-title {
+      font-size: 12pt;
+      font-weight: 800;
+      color: #0F172A;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #F1F5F9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-subtitle {
+      font-size: 9pt;
+      color: #64748B;
+      font-weight: 600;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 11px 13px;
+    }
+    .card h4 {
+      font-size: 9.8pt;
+      font-weight: 700;
+      color: #1E293B;
+      margin-bottom: 4px;
+    }
+    .card p {
+      font-size: 8.8pt;
+      color: #475569;
+    }
+    .stepper-row {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .step-box {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      padding: 7px 4px;
+      text-align: center;
+      font-size: 7.8pt;
+      font-weight: 700;
+      color: #1E40AF;
+    }
+    .step-box.win {
+      background: #ECFDF5;
+      border-color: #A7F3D0;
+      color: #065F46;
+    }
+    .win-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px 12px;
+      margin-top: 8px;
+      list-style: none;
+    }
+    .win-list li {
+      font-size: 8.8pt;
+      padding: 4px 8px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      color: #1E293B;
+    }
+    .redflag-box {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 8px;
+    }
+    .redflag-box h4 {
+      color: #DC2626;
+      font-size: 9.5pt;
+      margin-bottom: 6px;
+    }
+    .redflag-box ul {
+      padding-left: 16px;
+      color: #991B1B;
+      font-size: 8.8pt;
+    }
+    .redflag-box li {
+      margin-bottom: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 8.8pt;
+    }
+    th, td {
+      border: 1px solid #E2E8F0;
+      padding: 7px 10px;
+      text-align: left;
+    }
+    th {
+      background: #F1F5F9;
+      font-weight: 700;
+      color: #0F172A;
+    }
+    .footer-note {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 8pt;
+      color: #64748B;
+      border-top: 1px solid #E2E8F0;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SAYFA 1 -->
+  <div class="header-banner">
+    <div>
+      <h1>DEAL ROOM</h1>
+      <p>Kurumsal B2B Satış, Alıcı (Buyer) &amp; Win Metodolojisi ve Müşteri Odası Yönetim Sistemi</p>
+    </div>
+    <div class="brand-badges">
+      <span class="pill pill-yapra">🌱 Yapra.ai</span>
+      <span class="pill pill-ardic">⚙️ ArdicTech</span>
+    </div>
+  </div>
+
+  <!-- 1. GENEL BAKIŞ VE AMAÇ -->
+  <div class="section-box">
+    <div class="section-title">
+      <span>1. Deal Room Nedir ve Ne İşe Yarar?</span>
+      <span class="section-subtitle">Yönetici Özeti</span>
+    </div>
+    <p style="font-size: 9.3pt; color: #334155;">
+      <strong>Deal Room</strong>, <strong>Yapra.ai</strong> ve <strong>ArdicTech</strong> markalarının kurumsal (B2B) satış fırsatlarını, Holding ve Alt Şirket hiyerarşisini, müşteri içindeki karar mekanizmalarını (6 Alıcı Tipi ve 14+1 Kişisel/Kurumsal Win) ve satış sürecindeki riskleri (Otomatik Red Flag Motoru) tek bir sade, beyaz ve hızlı arayüzde yönetmek için tasarlanmış akıllı bir satış komuta merkezidir.
+    </p>
+    <div class="grid-3">
+      <div class="card">
+        <h4>🏛️ Holding &amp; Alt Şirket Yapısı</h4>
+        <p>Koç Holding, Sabancı Holding gibi çatı grupları ve altındaki kardeş şirketleri (Tüpraş, Arçelik, Enerjisa vb.) birbiriyle ilişkili şekilde takip eder.</p>
+      </div>
+      <div class="card">
+        <h4>🎯 Alıcı &amp; Win Metodolojisi</h4>
+        <p>Müşteri içerisindeki her paydaşın rolünü (Karar Verici, Şampiyon, Engelleyici vb.) ve o kişinin projeden elde edeceği "Win" kazanımını eşleştirir.</p>
+      </div>
+      <div class="card">
+        <h4>🚩 Otomatik Red Flag Denetçisi</h4>
+        <p>Win yaratılmadan teklif çıkılması, Engelleyici varlığı veya geciken toplantı aksiyonlarını otomatik yakalayıp kırmızı bayrak üretir.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. EKRAN 1: ANA EKRAN VE 3 ANA HUNİ (FUNNEL) KUTUSU -->
+  <div class="section-box">
+    <div class="section-title">
+      <span>2. Ekran 1: Ana Müşteri Ekranı ve 3 Ana Kutu (Funnel Mimarisi)</span>
+      <span class="section-subtitle">Addressables ➔ Contacted ➔ Engaged</span>
+    </div>
+    <p style="font-size: 9pt; color: #475569; margin-bottom: 6px;">
+      Uygulamaya giriş yapıldığında en üstte tüm müşteri havuzunu 3 net olgunluk seviyesine ayıran <strong>3 Ana Kutu</strong> yer alır. Her müşteri için uzun formlar doldurmadan, üstteki <em>"Hızlı Ekle"</em> satırından 10 saniyede kayıt açılabilir:
+    </p>
+    <div class="grid-3">
+      <div class="card" style="border-top: 3px solid #64748B;">
+        <h4>1. 🎯 Addressables (Hedeflenenler)</h4>
+        <p>Henüz temas kurulmamış ancak Yapra.ai veya ArdicTech çözümleri için potansiyeli olan hedef Holding ve alt şirketler listesidir.</p>
+      </div>
+      <div class="card" style="border-top: 3px solid #2563EB;">
+        <h4>2. 📩 Contacted (Temas Edilenler)</h4>
+        <p>İlk e-posta, LinkedIn mesajı veya tanışma sunumu iletilmiş; toplantı veya geri dönüş beklenen müşterilerdir. Tek tıkla <em>Engaged</em>'a taşınır.</p>
+      </div>
+      <div class="card" style="border-top: 3px solid #059669;">
+        <h4>3. 🤝 Engaged (Aktif Deal Room'lar)</h4>
+        <p>Masaya oturulmuş, ihtiyaç analizi, teknik demo, PoC, teklif veya sözleşme sürecinde olan sıcak satış odalarıdır.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. EKRAN 2: MÜŞTERİ ODASI (DEAL ROOM) İÇİ 3 KUTU MİMARİSİ -->
+  <div class="section-box">
+    <div class="section-title">
+      <span>3. Ekran 2: Müşteri Odası (Deal Room) İçindeki 3 Ana Kutu</span>
+      <span class="section-subtitle">Şirket Detay Görünümü</span>
+    </div>
+    <p style="font-size: 9pt; color: #475569;">
+      Listedeki bir şirkete tıklandığında açılan <strong>Deal Room</strong> sayfası, kullanıcının hiçbir menüde kaybolmaması için <strong>3 Ana Kutu</strong> olarak tasarlanmıştır:
+    </p>
+
+    <div class="card" style="margin-top: 8px; background: #FFFFFF; border: 1px solid #CBD5E1;">
+      <h4>📦 1. KUTU (Üst Boydan Boya): Müşteri &amp; Holding Genel Kartı + 9 Aşamalı İnteraktif Stepper</h4>
+      <p style="margin-bottom: 6px;">
+        Şirketin bağlı olduğu Holding adını, aynı holdingdeki diğer kardeş şirketlere hızlı geçiş çiplerini, hangi markamızla (Yapra.ai / ArdicTech) ilerlediğimizi, teklif hacmini ($), hedef fatura tarihini ve <strong>9 Aşamalı İnteraktif Satış Seviyesini (Stepper)</strong> barındırır:
+      </p>
+      <div class="stepper-row">
+        <div class="step-box">1. İlk Temas</div>
+        <div class="step-box">2. Engagement</div>
+        <div class="step-box">3. Doküman Paylaşımı</div>
+        <div class="step-box">4. Teknik Demo</div>
+        <div class="step-box">5. Pilot / PoC</div>
+        <div class="step-box">6. İlk Teklif</div>
+        <div class="step-box">7. Revize Teklif</div>
+        <div class="step-box">8. Sözleşme</div>
+        <div class="step-box win">9. Kazanıldı 🏆</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card" style="background: #FFFFFF; border: 1px solid #CBD5E1;">
+        <h4>👥 2. KUTU (Sol Orta): 6 Alıcı Tipi, 14+1 Win &amp; Red Flags</h4>
+        <p>Müşteri içerisindeki kişilerin rolleri, çoklu seçilebilir kazanımları (Win), Win netleşme statüleri ve sistemin ürettiği Kırmızı Bayrak (Red Flag) uyarıları bu kutuda yer alır.</p>
+      </div>
+      <div class="card" style="background: #FFFFFF; border: 1px solid #CBD5E1;">
+        <h4>📂 3. KUTU (Sağ Orta): Aksiyonlar, Drag&amp;Drop &amp; Tarihçe</h4>
+        <p>Toplantı sonrası yapılacak işler (Next Steps), sürükle-bırak (Drag &amp; Drop) teklif/doküman/sözleşme/email yükleme alanı ve kategori filtreli oda tarihçesi (Timeline) burada bulunur.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAYFA 2 -->
+  <div class="page-break"></div>
+
+  <!-- 4. ALICI TİPLERİ (6 BUYER ROLE) VE 14+1 WIN METODOLOJİSİ -->
+  <div class="section-box">
+    <div class="section-title">
+      <span>4. Alıcı Haritası: 6 Alıcı Tipi (Buyer Roles) &amp; 14+1 Win Seçenekleri</span>
+      <span class="section-subtitle">2. Kutu Fonksiyonları</span>
+    </div>
+
+    <h4 style="font-size: 9.5pt; margin-bottom: 4px; color: #1E293B;">A) 6 Alıcı Tipi (Dropdown Seçenekleri)</h4>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 24%;">Alıcı Tipi (Buyer Role)</th>
+          <th>Rolün Satış Sürecindeki Anlamı ve Önemi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>👑 Karar Verici</strong></td>
+          <td>Projeye son onayı veren, stratejik ve yönetsel "Evet" yetkisine sahip üst düzey yönetici.</td>
+        </tr>
+        <tr>
+          <td><strong>💰 Finansal Alıcı</strong></td>
+          <td>Bütçeyi, ROI (Yatırım Getirisi) hesabını, satınalma şartlarını ve fatura/ödeme planını onaylayan kişi (CFO, Satınalma).</td>
+        </tr>
+        <tr>
+          <td><strong>🧑‍💻 Kullanıcı Alıcı</strong></td>
+          <td>Yapra.ai veya ArdicTech ürününü günlük operasyonda bizzat kullanacak departman veya ekip yöneticisi.</td>
+        </tr>
+        <tr>
+          <td><strong>⚙️ Teknik Alıcı</strong></td>
+          <td>IT altyapısı, siber güvenlik, KVKK/ISO uyumluluğu ve entegrasyon onayını veren teknik değerlendirici.</td>
+        </tr>
+        <tr>
+          <td><strong>🏆 Şampiyon</strong></td>
+          <td>Müşteri içerisindeki rehberimiz; çözümümüzü içeride savunan, bilgi paylaşan ve kazanmamızı isteyen kişi.</td>
+        </tr>
+        <tr>
+          <td><strong>🛑 Engelleyici</strong></td>
+          <td>Statükoyu veya rakip/eski sistemi koruyan, projeyi yavaşlatan veya itiraz eden kişi (Otomatik Red Flag üretir).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4 style="font-size: 9.5pt; margin-top: 12px; margin-bottom: 4px; color: #1E293B;">
+      B) 14 Standart "Win" Seçeneği (Çoklu Seçilebilir) + Özel Win Girişi
+    </h4>
+    <ul class="win-list">
+      <li>1. Promosyon / Terfi Alma</li>
+      <li>2. Zam / Prim Kazanma</li>
+      <li>3. İş Kolaylığı &amp; Konfor</li>
+      <li>4. Hız ve Zaman Kazanma</li>
+      <li>5. Kendini İspat Etme</li>
+      <li>6. Yeni Teknolojiyi Hayata Geçirme</li>
+      <li>7. Şirket İçi Görünürlüğün Artması</li>
+      <li>8. Önem &amp; Yetki Seviyesinin Artması</li>
+      <li>9. Kafası Rahat Tatile Çıkabilme</li>
+      <li>10. Maliyet Azaltma (Cost Saving)</li>
+      <li>11. Kontrol Seviyesinin Artması</li>
+      <li>12. Riskten Korunma / Denetim Uyumluluğu</li>
+      <li>13. IT / Dış Tedarikçi Bağımlılığından Kurtulma</li>
+      <li>14. Prestij / Holdingde Örnek Proje Çıkarma</li>
+    </ul>
+    <p style="font-size: 8.8pt; color: #475569; margin-top: 6px;">
+      ➕ <strong>Özel Win Ekle (Elle Giriş):</strong> Bu 14 standart maddenin hemen altında, kişiye özel motivasyonların serbest metin olarak yazılabildiği alan yer alır.<br/>
+      📌 <strong>Win Durumu Seçimi:</strong> Her alıcı için <strong>"✅ Win Netleşti / Yaratıldı"</strong> veya <strong>"⏳ Henüz Yaratılmadı (Potansiyel Win)"</strong> statüsü seçilir.
+    </p>
+
+    <div class="redflag-box">
+      <h4>🚩 Otomatik Red Flag (Kırmızı Bayrak) Kuralları</h4>
+      <ul>
+        <li><strong>Potansiyel Win ile Teklif Çıkılması:</strong> 9 aşamalı Stepper'da <em>6. İlk Teklif</em> (veya sonrası) aşamasına geçildiğinde, odadaki alıcılardan birinin durumu hâlâ <em>"⏳ Henüz Yaratılmadı (Potansiyel Win)"</em> ise sistem otomatik Red Flag üretir.</li>
+        <li><strong>Engelleyici Alıcı Varlığı:</strong> Odada <em>Engelleyici</em> rolünde bir kişi tanımlandığında otomatik risk uyarısı gösterilir.</li>
+        <li><strong>Karar Verici Eksikliği:</strong> <em>Teknik Demo (Aşama 4)</em> ve sonrasına gelindiği halde odada henüz <em>Karar Verici</em> tanımlanmadıysa uyarı verir.</li>
+        <li><strong>Geciken Toplantı Sonrası Aksiyon:</strong> Termin tarihi (Due Date) geçmiş ve tamamlanmamış bir aksiyon varsa otomatik Red Flag üretir.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5. 3. KUTU: AKSİYONLAR, DRAG & DROP VE FİLTRELİ ODA TARİHÇESİ -->
+  <div class="section-box">
+    <div class="section-title">
+      <span>5. Aksiyon Takibi, Drag &amp; Drop Dosya ve Filtreli Tarihçe</span>
+      <span class="section-subtitle">3. Kutu &amp; Arama / AI Fonksiyonları</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h4>⚡ Toplantı Sonrası Aksiyonlar (Next Steps)</h4>
+        <p>3. Kutunun en üstünde sabit durur. Her aksiyonun sorumlusu ve termin tarihi vardır. Ayrıca toplantı notu/email yapıştırıldığında içindeki <code>- </code> ile başlayan maddeleri <strong>otomatik olarak Aksiyon Listesine</strong> aktarır.</p>
+      </div>
+      <div class="card">
+        <h4>📥 Drag &amp; Drop (Sürükle-Bırak) &amp; 5 Filtre Sekmesi</h4>
+        <p>PDF Teklif, Revizyon, Word Sözleşme, Teknik Doküman veya Email (<code>.eml</code>) dosyaları fareyle sürüklenip bırakılır. Tarihçe; <strong>Toplantı Notları, Emailler, Teklifler &amp; Revizyonlar, Doküman &amp; Sözleşmeler</strong> olarak filtrelenir.</p>
+      </div>
+      <div class="card">
+        <h4>🔍 Global Anında Arama &amp; Email Taslağı</h4>
+        <p>Üst bardaki arama kutusundan Holding, şirket, kişi adı, teklif PDF'i veya toplantı notu kelimesi aranabilir. Tek tıkla hazır müşteri Email/WhatsApp taslağı oluşturulur.</p>
+      </div>
+      <div class="card">
+        <h4>✨ DealRoom AI Agent &amp; ⚡ Supabase Altyapısı</h4>
+        <p>Sağ alttaki AI asistana Türkçe sorular (<em>"Red flag olan müşteriler hangileri?", "Bu ay faturası kesilecekler"</em>) sorulabilir. Veriler yerel sunucuda ve Supabase PostgreSQL bulut veritabanında senkronize çalışır.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Deal Room Kurumsal Satış Platformu — Yapra.ai &amp; ArdicTech • Canlı Erişim: http://localhost:3000
+  </div>
+
+</body>
+</html>

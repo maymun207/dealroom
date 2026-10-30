@@ -1,0 +1,512 @@
+{
+  "sellers": [
+    {
+      "id": "s-hulya",
+      "name": "Hülya Kahveci",
+      "email": "hulya@yapra.ai",
+      "role": "Kurucu & Satış Lideri",
+      "brand_focus": "Her İkisi",
+      "created_at": "2026-10-01T09:00:00Z"
+    },
+    {
+      "id": "s-kerem",
+      "name": "Kerem Arslan",
+      "email": "kerem@ardictech.com",
+      "role": "Kurumsal Satış Yöneticisi",
+      "brand_focus": "ArdicTech",
+      "created_at": "2026-10-05T10:00:00Z"
+    },
+    {
+      "id": "s-ece",
+      "name": "Ece Demir",
+      "email": "ece@yapra.ai",
+      "role": "İş Geliştirme Yöneticisi",
+      "brand_focus": "Yapra.ai",
+      "created_at": "2026-10-10T11:00:00Z"
+    },
+    {
+      "id": "s-1793363818389",
+      "name": "Hulya Kahveci",
+      "email": "hulya.kahveci@ardictech.com",
+      "role": "Satış Yöneticisi",
+      "brand_focus": "ArdicTech",
+      "created_at": "2026-10-30T12:36:58.389Z"
+    }
+  ],
+  "holdings": [
+    {
+      "id": "h-koc",
+      "name": "Koç Holding",
+      "sector": "Holding / Çoklu Sektör",
+      "website": "https://www.koc.com.tr",
+      "notes": "Türkiye'nin en büyük sanayi ve hizmet grubu. Yapra.ai ve ArdicTech kurumsal dönüşüm projeleri için stratejik öncelikli grup."
+    },
+    {
+      "id": "h-sabanci",
+      "name": "Sabancı Holding",
+      "sector": "Enerji, Finans & Sanayi",
+      "website": "https://www.sabanci.com",
+      "notes": "Enerji ve sanayi grup şirketlerinde AI ve IoT odaklı dijitalleşme fırsatları mevcut."
+    },
+    {
+      "id": "h-eczacibasi",
+      "name": "Eczacıbaşı Holding",
+      "sector": "Sağlık, Tüketim & Yapı",
+      "website": "https://www.eczacibasi.com.tr",
+      "notes": "Üretim tesisleri ve tedarik zinciri optimizasyonu için hedeflenen grup."
+    },
+    {
+      "id": "h-anadolu",
+      "name": "Anadolu Grubu",
+      "sector": "Perakende, İçecek & Otomotiv",
+      "website": "https://www.anadolugrubu.com.tr",
+      "notes": "Geniş saha operasyonları ve bayi ağı yönetimi için potansiyel grup."
+    }
+  ],
+  "companies": [
+    {
+      "id": "c-tupras",
+      "owner_id": "s-hulya",
+      "owner_name": "Hülya Kahveci",
+      "owner_email": "hulya@yapra.ai",
+      "is_private": false,
+      "holding_id": "h-koc",
+      "holding_name": "Koç Holding",
+      "name": "Tüpraş",
+      "brand": "Yapra.ai",
+      "funnel_status": "Engaged",
+      "stage": 6,
+      "contact_person": {
+        "name": "Ahmet Yılmaz",
+        "title": "Dijital Dönüşüm Direktörü",
+        "email": "ahmet.yilmaz@tupras.com.tr",
+        "phone": "+90 532 410 20 30"
+      },
+      "sector": "Enerji & Rafineri",
+      "website": "https://www.tupras.com.tr",
+      "city": "Kocaeli / İstanbul",
+      "employee_size": "5000+",
+      "deal_value": 85000,
+      "currency": "USD",
+      "expected_invoice_date": "2026-11-25",
+      "summary_note": "Rafineri bakım ve operasyon süreçlerinde Yapra.ai Kurumsal AI Asistanı ve ArdicTech IoT veri entegrasyonu projesi. İlk teklif sunuldu, finansal onay ve güvenlik incelemesi aşamasında.",
+      "manual_red_flags": [],
+      "competitors": [
+        {
+          "id": "comp-1",
+          "name": "Microsoft Copilot Enterprise",
+          "status": "Alternatif İnceleniyor",
+          "note": "Genel ofis asistanı olarak güçlü ancak rafineri saha/IoT ve on-premise veri izolasyonunda Yapra.ai + ArdicTech önde."
+        },
+        {
+          "id": "comp-2",
+          "name": "İç Yazılım Ekibi (In-House LLM)",
+          "status": "Engelleyici Önerisi",
+          "note": "ERP Müdürü içeride geliştirmeyi savunuyor; bakım maliyeti ve 9 aylık süre dezavantajını CFO'ya gösteriyoruz."
+        }
+      ],
+      "buyers": [
+        {
+          "id": "b-1",
+          "name": "Ahmet Yılmaz",
+          "title": "Dijital Dönüşüm Direktörü",
+          "email": "ahmet.yilmaz@tupras.com.tr",
+          "phone": "+90 532 410 20 30",
+          "role": "Karar Verici",
+          "wins": [
+            "Prestij / Holdingde Örnek Proje Çıkarma",
+            "Yeni Teknolojiyi Hayata Geçirme",
+            "Şirket İçi Görünürlüğün Artması",
+            "Hız ve Zaman Kazanma"
+          ],
+          "custom_win": "Koç Grubu yıllık inovasyon ödülüne bu AI projesiyle aday olmak",
+          "win_status": "created"
+        },
+        {
+          "id": "b-2",
+          "name": "Selin Kaya",
+          "title": "Üretim Sistemleri Yöneticisi",
+          "email": "selin.kaya@tupras.com.tr",
+          "phone": "+90 533 210 90 11",
+          "role": "Şampiyon",
+          "wins": [
+            "Hız ve Zaman Kazanma",
+            "İş Kolaylığı & Konfor",
+            "Promosyon / Terfi Alma"
+          ],
+          "custom_win": "",
+          "win_status": "created"
+        },
+        {
+          "id": "b-3",
+          "name": "Murat Demir",
+          "title": "Siber Güvenlik & IT Altyapı Müdürü",
+          "email": "murat.demir@tupras.com.tr",
+          "phone": "+90 542 330 12 44",
+          "role": "Teknik Alıcı",
+          "wins": [
+            "Riskten Korunma / Denetim Uyumluluğu",
+            "Kontrol Seviyesinin Artması"
+          ],
+          "custom_win": "On-premise / Private Cloud veri izolasyonu garantisi",
+          "win_status": "created"
+        },
+        {
+          "id": "b-4",
+          "name": "Hakan Ersoy",
+          "title": "CFO / Finans Direktörü",
+          "email": "hakan.ersoy@tupras.com.tr",
+          "phone": "+90 532 410 55 00",
+          "role": "Finansal Alıcı",
+          "wins": [
+            "Maliyet Azaltma (Cost Saving)",
+            "IT / Dış Tedarikçi Bağımlılığından Kurtulma"
+          ],
+          "custom_win": "6 ay içinde net ROI geri dönüş raporu",
+          "win_status": "potential"
+        },
+        {
+          "id": "b-5",
+          "name": "Zeynep Aydın",
+          "title": "Rafineri Operasyon Başmühendisi",
+          "email": "zeynep.aydin@tupras.com.tr",
+          "phone": "+90 533 880 12 34",
+          "role": "Kullanıcı Alıcı",
+          "wins": [
+            "İş Kolaylığı & Konfor",
+            "Kafası Rahat Tatile Çıkabilme"
+          ],
+          "custom_win": "Vardiya devir teslim raporlarının otomatik hazırlanması",
+          "win_status": "created"
+        },
+        {
+          "id": "b-6",
+          "name": "Bülent Korkmaz",
+          "title": "Kurumsal ERP & Legacy Sistemler Müdürü",
+          "email": "bulent.korkmaz@tupras.com.tr",
+          "phone": "+90 542 900 11 22",
+          "role": "Engelleyici",
+          "wins": [
+            "Kontrol Seviyesinin Artması",
+            "Kendini İspat Etme"
+          ],
+          "custom_win": "Mevcut ERP ekibinin yetki alanının korunması",
+          "win_status": "potential"
+        }
+      ],
+      "actions": [
+        {
+          "id": "act-1",
+          "title": "Ahmet Bey ve Hakan Bey için 6 aylık ROI & Maliyet Azaltma simülasyon tablosunu gönder",
+          "owner": "Yapra.ai Ekibi",
+          "due_date": "2026-10-28",
+          "completed": false
+        },
+        {
+          "id": "act-2",
+          "title": "Murat Bey ile ISO/KVKK ve Private Cloud güvenlik mimarisi onay toplantısını tamamla",
+          "owner": "ArdicTech Teknik Ekip",
+          "due_date": "2026-11-04",
+          "completed": false
+        }
+      ],
+      "timeline": [
+        {
+          "id": "t-1b",
+          "type": "revision",
+          "title": "Tüpraş Yapra.ai Enterprise Paket + Güvenlik İzolasyonu Ek Teklifi (v1.2)",
+          "content": "Private Cloud kurulum opsiyonu dahil edilmiş revize ticari teklif.",
+          "file_name": "YapraAI_Tupras_Revize_v1.2.pdf",
+          "file_size": "1.6 MB",
+          "amount": "$85,000",
+          "author": "Hülya Kahveci",
+          "created_at": "2026-10-29 14:20"
+        },
+        {
+          "id": "t-1",
+          "type": "proposal",
+          "title": "Tüpraş Yapra.ai Kurumsal Lisans & PoC İlk Teklifi (v1.0)",
+          "content": "Yıllık Kurumsal Lisans + Kurulum paketi: $85,000 USD + KDV. 25 Kasım fatura kesim hedefli.",
+          "file_name": "YapraAI_Tupras_Ilk_Teklif_v1.pdf",
+          "file_size": "1.4 MB",
+          "amount": "$85,000",
+          "author": "Hülya Kahveci",
+          "created_at": "2026-10-26 15:30"
+        },
+        {
+          "id": "t-2",
+          "type": "meeting_note",
+          "title": "PoC Değerlendirme & Teklif Öncesi Toplantı Notu (Email Özeti)",
+          "content": "Merhaba Ahmet Bey ve Selin Hanım,\n\nBugünkü toplantımızda konuştuğumuz üzere Pilot PoC sonuçlarında %38 zaman tasarrufu doğrulandı.\nToplantı Sonrası Aksiyonlar:\n- Cuma gününe kadar CFO Hakan Bey için ROI simülasyon tablosu paylaşılacak.\n- Murat Bey'in ekibine güvenlik topolojisi dokümanı iletilecek.",
+          "file_name": "",
+          "file_size": "",
+          "amount": "",
+          "author": "Hülya Kahveci",
+          "created_at": "2026-10-24 11:15"
+        }
+      ],
+      "updated_at": "2026-10-30T10:00:00Z"
+    },
+    {
+      "id": "c-arcelik",
+      "owner_id": "s-kerem",
+      "owner_name": "Kerem Arslan",
+      "owner_email": "kerem@ardictech.com",
+      "is_private": false,
+      "holding_id": "h-koc",
+      "holding_name": "Koç Holding",
+      "name": "Arçelik",
+      "brand": "ArdicTech",
+      "funnel_status": "Engaged",
+      "stage": 4,
+      "contact_person": {
+        "name": "Cemre Aksoy",
+        "title": "Global Üretim Teknolojileri VP",
+        "email": "cemre.aksoy@arcelik.com",
+        "phone": "+90 532 777 88 99"
+      },
+      "sector": "Dayanıklı Tüketim & Üretim",
+      "website": "https://www.arcelik.com.tr",
+      "city": "İstanbul / Çayırova",
+      "employee_size": "10000+",
+      "deal_value": 120000,
+      "currency": "USD",
+      "expected_invoice_date": "2026-12-15",
+      "summary_note": "Akıllı fabrika IoT cihaz yönetimi ve kestirimci bakım platformu için Teknik Demo aşamasındayız.",
+      "manual_red_flags": [],
+      "buyers": [
+        {
+          "id": "b-arc-1",
+          "name": "Cemre Aksoy",
+          "title": "Global Üretim Teknolojileri VP",
+          "email": "cemre.aksoy@arcelik.com",
+          "phone": "+90 532 777 88 99",
+          "role": "Karar Verici",
+          "wins": [
+            "Maliyet Azaltma (Cost Saving)",
+            "Kontrol Seviyesinin Artması",
+            "Kafası Rahat Tatile Çıkabilme"
+          ],
+          "custom_win": "Avrupa fabrikalarında sıfır plansız duruş hedefi",
+          "win_status": "created"
+        },
+        {
+          "id": "b-arc-3",
+          "name": "Tolga Kılıç",
+          "title": "Eski Sistem Danışmanı",
+          "email": "tolga.kilic@arcelik.com",
+          "phone": "",
+          "role": "Engelleyici",
+          "wins": [
+            "Kendini İspat Etme"
+          ],
+          "custom_win": "Mevcut içeride yazılan legacy yazılımın korunmasını savunuyor",
+          "win_status": "potential"
+        }
+      ],
+      "actions": [
+        {
+          "id": "act-arc-1",
+          "title": "Çayırova tesisi canlı veri akışı ile Teknik Demo sunumu",
+          "owner": "ArdicTech",
+          "due_date": "2026-11-05",
+          "completed": false
+        }
+      ],
+      "timeline": [
+        {
+          "id": "t-arc-1",
+          "type": "proposal",
+          "title": "Arçelik Çayırova Akıllı Fabrika IoT & Edge AI Ön Bütçe Teklifi",
+          "content": "Çayırova ve Eskişehir tesisleri için Faz-1 PoC ve 500 hat lisansı ön teklifi.",
+          "file_name": "ArdicTech_Arcelik_On_Teklif_2026.pdf",
+          "file_size": "2.1 MB",
+          "amount": "$120,000",
+          "author": "Kerem Arslan",
+          "created_at": "2026-10-28 11:00"
+        }
+      ],
+      "updated_at": "2026-10-29T14:00:00Z"
+    },
+    {
+      "id": "c-enerjisa",
+      "owner_id": "s-hulya",
+      "owner_name": "Hülya Kahveci",
+      "owner_email": "hulya@yapra.ai",
+      "is_private": true,
+      "holding_id": "h-sabanci",
+      "holding_name": "Sabancı Holding",
+      "name": "Enerjisa Enerji",
+      "brand": "Her İkisi",
+      "funnel_status": "Engaged",
+      "stage": 7,
+      "contact_person": {
+        "name": "Levent Çelik",
+        "title": "Operasyonel Mükemmellik Direktörü",
+        "email": "levent.celik@enerjisa.com",
+        "phone": "+90 532 600 70 80"
+      },
+      "sector": "Enerji Dağıtım & Perakende",
+      "website": "https://www.enerjisa.com.tr",
+      "city": "İstanbul / Ankara",
+      "employee_size": "5000+",
+      "deal_value": 95000,
+      "currency": "USD",
+      "expected_invoice_date": "2026-11-15",
+      "summary_note": "Saha operasyonları AI asistanı ve şebeke analitiği projesi. Revize teklif paylaşıldı, sözleşme öncesi son müzakere.",
+      "manual_red_flags": [],
+      "buyers": [
+        {
+          "id": "b-en-1",
+          "name": "Levent Çelik",
+          "title": "Operasyonel Mükemmellik Direktörü",
+          "email": "levent.celik@enerjisa.com",
+          "phone": "+90 532 600 70 80",
+          "role": "Karar Verici",
+          "wins": [
+            "Hız ve Zaman Kazanma",
+            "Zam / Prim Kazanma",
+            "Prestij / Holdingde Örnek Proje Çıkarma"
+          ],
+          "custom_win": "",
+          "win_status": "created"
+        }
+      ],
+      "actions": [
+        {
+          "id": "act-en-1",
+          "title": "Revize teklif üzerinden taslak sözleşmeyi Hukuk birimine ilet",
+          "owner": "Yapra.ai & ArdicTech",
+          "due_date": "2026-11-02",
+          "completed": false
+        }
+      ],
+      "timeline": [
+        {
+          "id": "t-en-3",
+          "type": "revision",
+          "title": "Enerjisa Saha AI + Şebeke Analitiği Final Revize Teklifi (v2.1)",
+          "content": "Yıllık SLA ve 7/24 destek paketi dahil edilmiş revize teklif.",
+          "file_name": "Enerjisa_Revize_Teklif_v2.1.pdf",
+          "file_size": "1.9 MB",
+          "amount": "$95,000",
+          "author": "Hülya Kahveci",
+          "created_at": "2026-10-28 16:40"
+        },
+        {
+          "id": "t-en-2",
+          "type": "revision",
+          "title": "Enerjisa Saha Operasyonları AI Asistanı Revize Teklifi (v1.5)",
+          "content": "Kullanıcı sayısı 1.500 saha personeline çıkarılarak güncellendi.",
+          "file_name": "Enerjisa_Revize_Teklif_v1.5.pdf",
+          "file_size": "1.7 MB",
+          "amount": "$88,000",
+          "author": "Hülya Kahveci",
+          "created_at": "2026-10-21 10:15"
+        },
+        {
+          "id": "t-en-1",
+          "type": "proposal",
+          "title": "Enerjisa Saha AI & ArdicTech Sensör Paketi İlk Teklifi (v1.0)",
+          "content": "Başlangıç fazı kurumsal lisans ve entegrasyon teklifi.",
+          "file_name": "Enerjisa_Ilk_Teklif_v1.0.pdf",
+          "file_size": "1.5 MB",
+          "amount": "$78,000",
+          "author": "Hülya Kahveci",
+          "created_at": "2026-10-14 09:45"
+        },
+        {
+          "id": "t-en-0",
+          "type": "proposal",
+          "title": "Enerjisa PoC & Pilot Kurulum Ön Teklifi",
+          "content": "3 aylık saha pilotu kapsam ve bütçe teklifi.",
+          "file_name": "Enerjisa_Pilot_Teklifi.pdf",
+          "file_size": "1.1 MB",
+          "amount": "$24,000",
+          "author": "Hülya Kahveci",
+          "created_at": "2026-10-03 14:00"
+        }
+      ],
+      "updated_at": "2026-10-28T16:50:00Z"
+    },
+    {
+      "id": "c-kordsa",
+      "owner_id": "s-kerem",
+      "owner_name": "Kerem Arslan",
+      "owner_email": "kerem@ardictech.com",
+      "is_private": false,
+      "holding_id": "h-sabanci",
+      "holding_name": "Sabancı Holding",
+      "name": "Kordsa",
+      "brand": "ArdicTech",
+      "funnel_status": "Contacted",
+      "stage": 1,
+      "contact_person": {
+        "name": "Emre Yıldırım",
+        "title": "Fabrika Direktörü",
+        "email": "emre.yildirim@kordsa.com",
+        "phone": "+90 532 555 44 33"
+      },
+      "sector": "İleri Malzeme & Üretim",
+      "website": "https://www.kordsa.com",
+      "city": "Kocaeli",
+      "employee_size": "2500+",
+      "deal_value": 55000,
+      "currency": "USD",
+      "expected_invoice_date": "2026-12-30",
+      "summary_note": "Üretim kalite kontrol görüntü işleme ve sensör takibi için ilk tanışma e-postası gönderildi.",
+      "manual_red_flags": [],
+      "buyers": [
+        {
+          "id": "b-kor-1",
+          "name": "Emre Yıldırım",
+          "title": "Fabrika Direktörü",
+          "email": "emre.yildirim@kordsa.com",
+          "phone": "+90 532 555 44 33",
+          "role": "Karar Verici",
+          "wins": [
+            "Yeni Teknolojiyi Hayata Geçirme",
+            "Maliyet Azaltma (Cost Saving)"
+          ],
+          "custom_win": "",
+          "win_status": "potential"
+        }
+      ],
+      "actions": [],
+      "timeline": [],
+      "updated_at": "2026-10-25T09:30:00Z"
+    },
+    {
+      "id": "c-vitra",
+      "owner_id": "s-hulya",
+      "owner_name": "Hülya Kahveci",
+      "owner_email": "hulya@yapra.ai",
+      "is_private": false,
+      "holding_id": "h-eczacibasi",
+      "holding_name": "Eczacıbaşı Holding",
+      "name": "VitrA Karo & Yapı Ürünleri",
+      "brand": "Her İkisi",
+      "funnel_status": "Addressables",
+      "stage": 1,
+      "contact_person": {
+        "name": "Serkan Kaya",
+        "title": "Fabrika Operasyon Müdürü",
+        "email": "serkan.kaya@vitra.com.tr",
+        "phone": ""
+      },
+      "sector": "Yapı & Üretim",
+      "website": "https://www.vitra.com.tr",
+      "city": "Bilecik / İstanbul",
+      "employee_size": "3000+",
+      "deal_value": 65000,
+      "currency": "USD",
+      "expected_invoice_date": "",
+      "summary_note": "Bilecik üretim kampüsü enerji optimizasyonu ve AI kalite kontrol potansiyeli. Henüz temas kurulmadı.",
+      "manual_red_flags": [],
+      "buyers": [],
+      "actions": [],
+      "timeline": [],
+      "updated_at": "2026-10-20T09:00:00Z"
+    }
+  ]
+}

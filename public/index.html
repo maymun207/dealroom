@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deal Room — Yapra.ai & ArdicTech Kurumsal Satış Platformu</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!-- ÜST BAR (SABİT: Logo + Her Yerden Anında Arama + Holding/Şirket Ekle + Supabase & Kullanıcı) -->
+  <header class="topbar" id="topbar" style="display: none;">
+    <div class="brand-cluster" onclick="window.app.openAuthModal()" title="Giriş Ekranına Dön">
+      <div style="width: 42px; height: 36px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center;">
+        <img src="/logo.jpg" alt="DealRoom Logo" style="width: 54px; height: auto; margin-top: -4px; mix-blend-mode: multiply;" />
+      </div>
+      <div class="brand-title">
+        <strong style="color: #0D1B3E; font-size: 1.2rem; letter-spacing: -0.03em;">DealRoom</strong>
+      </div>
+    </div>
+
+    <!-- HER YERDEN ANINDA ARAMA (HOLDİNG, ŞİRKET, ALICI, TEKLİF, DOKÜMAN, EMAİL) -->
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input
+        type="search"
+        id="globalSearchInput"
+        class="search-input"
+        placeholder="Holding, şirket, kişi (buyer), teklif PDF, email veya toplantı notu ara..."
+        autocomplete="off"
+      />
+      <div id="globalSearchResults" class="search-results-dropdown" style="display: none;"></div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" id="userBadgeBtn" onclick="window.app.openAuthModal()" title="Oturum Bilgisi / Satıcı Değiştir">
+        👤 <span id="activeUserEmail">hulya@yapra.ai</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ANA İÇERİK ALANI -->
+  <main class="main-container" id="appRoot"></main>
+
+  <!-- SAĞ ALT FLOATING AI AGENT (DEALROOM AGENT) -->
+  <button class="ai-fab" id="aiFabBtn" onclick="window.app.toggleAiDrawer()" style="display: none;">
+    ✨ DealRoom AI Agent
+  </button>
+
+  <div class="ai-drawer" id="aiDrawer" style="display: none;">
+    <div style="padding: 14px 18px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; background: #fff;">
+      <div>
+        <strong style="font-size: 0.95rem;">✨ DealRoom AI Raporlama Asistanı</strong>
+        <div style="font-size: 0.74rem; color: var(--text-muted);">Canlı Veritabanı Sorgu Motoru + Gemini/OpenAI</div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="window.app.toggleAiDrawer()">✕</button>
+    </div>
+    <div style="padding: 8px 12px; background: var(--bg-subtle); border-bottom: 1px solid var(--border-light); display: flex; gap: 6px; overflow-x: auto;">
+      <button class="btn btn-outline btn-sm" onclick="window.app.askAiPreset('Red flag olan müşteriler hangileri?')">🚩 Red Flag'ler</button>
+      <button class="btn btn-outline btn-sm" onclick="window.app.askAiPreset('Bu ay faturası kesilecekler')">💰 Faturalar</button>
+      <button class="btn btn-outline btn-sm" onclick="window.app.askAiPreset('Yapra.ai ve ArdicTech pipeline özeti')">📊 Pipeline Özeti</button>
+      <button class="btn btn-outline btn-sm" onclick="window.app.askAiPreset('Geciken veya açık aksiyonlar neler?')">⚡ Açık Aksiyonlar</button>
+    </div>
+    <div class="ai-messages" id="aiMessages"></div>
+    <form onsubmit="window.app.handleAiSubmit(event)" style="padding: 10px 12px; border-top: 1px solid var(--border-light); display: flex; gap: 8px; background: #fff;">
+      <input type="text" id="aiInput" class="input-field" style="flex: 1;" placeholder="Örn: Koç Holding alt şirketlerinde durum ne?" />
+      <button type="submit" class="btn btn-primary btn-sm">Sor</button>
+    </form>
+  </div>
+
+  <!-- MODAL DIALOGS (Using Native <dialog closedby="any"> + Safari Fallback) -->
+
+  <!-- 1. ALICI (BUYER) & 14+1 WIN EKLEME / DÜZENLEME MODALI -->
+  <dialog id="buyerDialog" closedby="any" aria-labelledby="buyerDialogTitle">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <h3 id="buyerDialogTitle">👤 Alıcı (Buyer Role) &amp; Win Tanımla</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('buyerDialog')">✕</button>
+      </div>
+      <form id="buyerForm" onsubmit="window.app.saveBuyer(event)">
+        <input type="hidden" id="buyerIdInput" />
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Ad Soyad *</label>
+            <input type="text" id="buyerNameInput" class="input-field" style="width: 100%;" required placeholder="Örn: Ahmet Yılmaz" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Ünvan / Departman *</label>
+            <input type="text" id="buyerTitleInput" class="input-field" style="width: 100%;" required placeholder="Örn: Dijital Dönüşüm Direktörü" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Alıcı Tipi (6 Buyer Role) *</label>
+            <select id="buyerRoleSelect" class="select-field" style="width: 100%;" required>
+              <option value="Karar Verici">👑 Karar Verici</option>
+              <option value="Finansal Alıcı">💰 Finansal Alıcı</option>
+              <option value="Kullanıcı Alıcı">🧑‍💻 Kullanıcı Alıcı</option>
+              <option value="Teknik Alıcı">⚙️ Teknik Alıcı</option>
+              <option value="Şampiyon">🏆 Şampiyon</option>
+              <option value="Engelleyici">🛑 Engelleyici</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Kurumsal E-posta</label>
+            <input type="email" id="buyerEmailInput" class="input-field" style="width: 100%;" placeholder="isim@sirket.com" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Telefon</label>
+            <input type="text" id="buyerPhoneInput" class="input-field" style="width: 100%;" placeholder="+90 532 ..." />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 6px;">
+            🎯 Alıcı İçin "Win" Seçimi (Dropdown Menüden Seçin veya Elle Ekleyin)
+          </label>
+
+          <div class="win-dropdown-modal-wrapper" id="modalWinDropdownWrapper">
+            <button
+              type="button"
+              class="win-dropdown-trigger-btn"
+              onclick="window.app.toggleModalWinDropdown(event)"
+            >
+              <span id="modalWinDropdownSummary">🎯 Win seçmek için tıklayın (14 Standart Win + Elle Ekleme)...</span>
+              <span>▾</span>
+            </button>
+
+            <div class="win-dropdown-menu" id="modalWinDropdownMenu" style="display: none;" onclick="event.stopPropagation()">
+              <div style="padding: 8px 12px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0; font-size: 0.76rem; font-weight: 700; color: #475569; display: flex; justify-content: space-between; align-items: center;">
+                <span>Standart Win Listesi (Çoklu Seçilebilir)</span>
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 2px 8px; font-size: 0.72rem;" onclick="window.app.closeModalWinDropdown()">Tamam ✓</button>
+              </div>
+              <div id="buyerWinsCheckboxContainer" class="win-dropdown-options-list"></div>
+              <div style="padding: 10px 12px; border-top: 1px solid #E2E8F0; background: #F0F9FF;">
+                <div style="font-size: 0.78rem; font-weight: 700; color: #0369A1; margin-bottom: 6px;">
+                  ✍️ + Listede Olmayan Özel Win Ekle (Elle Giriş):
+                </div>
+                <input
+                  type="text"
+                  id="buyerCustomWinInput"
+                  class="input-field"
+                  style="width: 100%; background: #FFFFFF;"
+                  placeholder="Örn: Holding yönetim kurulunda yılın AI projesini sunmak..."
+                  oninput="window.app.updateModalWinSummary()"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Seçilen Win'lerin Özet Rozetleri -->
+          <div id="modalSelectedWinsChips" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"></div>
+        </div>
+
+        <div style="margin-bottom: 18px; padding: 12px; background: var(--bg-page); border-radius: 8px; border: 1px solid var(--border-light);">
+          <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 8px;">
+            📌 Win Durumu Seçimi (Teklif aşamasında Potansiyel kalırsa otomatik 🚩 Red Flag üretir)
+          </label>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem; font-weight: 600;">
+              <input type="radio" name="buyerWinStatus" value="created" />
+              ✅ Win Netleşti / Yaratıldı
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem; font-weight: 600;">
+              <input type="radio" name="buyerWinStatus" value="potential" checked />
+              ⏳ Henüz Yaratılmadı (Potansiyel Win)
+            </label>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-outline" onclick="window.app.closeDialog('buyerDialog')">İptal</button>
+          <button type="submit" class="btn btn-primary">Alıcıyı &amp; Win'leri Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 2. YENİ ŞİRKET / MÜŞTERİ GENEL KARTI MODALI -->
+  <dialog id="companyDialog" closedby="any" aria-labelledby="companyDialogTitle">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <h3 id="companyDialogTitle">🏢 Müşteri Genel Kartı (Holding &amp; Alt Şirket)</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('companyDialog')">✕</button>
+      </div>
+      <form id="companyForm" onsubmit="window.app.saveCompanyModal(event)">
+        <input type="hidden" id="compIdInput" />
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Holding / Grup Çatısı</label>
+            <select id="compHoldingSelect" class="select-field" style="width: 100%;"></select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Alt Şirket / Müşteri Adı *</label>
+            <input type="text" id="compNameInput" class="input-field" style="width: 100%;" required placeholder="Örn: Tüpraş, Enerjisa, Migros..." />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">İlgili Markamız *</label>
+            <select id="compBrandSelect" class="select-field" style="width: 100%;">
+              <option value="Yapra.ai">Yapra.ai</option>
+              <option value="ArdicTech">ArdicTech</option>
+              <option value="Her İkisi">Her İkisi (Yapra + Ardic)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Ana Başlık (Funnel) *</label>
+            <select id="compFunnelSelect" class="select-field" style="width: 100%;">
+              <option value="Addressables">🎯 Addressables (Hedeflenen)</option>
+              <option value="Contacted">📩 Contacted (Temas Edilen)</option>
+              <option value="Engaged">🤝 Engaged (Aktif Deal Room)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Sektör</label>
+            <input type="text" id="compSectorInput" class="input-field" style="width: 100%;" placeholder="Örn: Enerji, Üretim, Perakende" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Tahmini Teklif Tutarı ($)</label>
+            <input type="number" id="compDealValueInput" class="input-field" style="width: 100%;" placeholder="75000" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Hedef Fatura Tarihi</label>
+            <input type="date" id="compInvoiceDateInput" class="input-field" style="width: 100%;" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Şehir / Lokasyon</label>
+            <input type="text" id="compCityInput" class="input-field" style="width: 100%;" placeholder="İstanbul / Kocaeli" />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Genel Müşteri &amp; Fırsat Özeti</label>
+          <textarea id="compSummaryInput" class="input-field" style="width: 100%; min-height: 70px;" placeholder="Proje kapsamı, holding içi sinerji veya genel müşteri notu..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-outline" onclick="window.app.closeDialog('companyDialog')">İptal</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 3. YENİ HOLDİNG TANIMLAMA MODALI -->
+  <dialog id="holdingDialog" closedby="any" aria-labelledby="holdingDialogTitle">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <h3 id="holdingDialogTitle">🏛️ Holding / Şirketler Grubu Tanımla</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('holdingDialog')">✕</button>
+      </div>
+      <form onsubmit="window.app.saveHoldingModal(event)">
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Holding / Grup Adı *</label>
+          <input type="text" id="holdingNameInput" class="input-field" style="width: 100%;" required placeholder="Örn: Koç Holding, Sabancı Holding, Borusan Grubu..." />
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Ana Faaliyet Alanları</label>
+          <input type="text" id="holdingSectorInput" class="input-field" style="width: 100%;" placeholder="Örn: Sanayi, Enerji, Otomotiv, Finans" />
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Holding Strateji Notu</label>
+          <textarea id="holdingNotesInput" class="input-field" style="width: 100%; min-height: 60px;" placeholder="Grup genelindeki ortak anlaşmalar veya hedef alt şirketler..."></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-outline" onclick="window.app.closeDialog('holdingDialog')">İptal</button>
+          <button type="submit" class="btn btn-primary">Holding Ekle</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 4. TIMELINE KAYDI (TOPLANTI NOTU, EMAİL, TEKLİF, REVİZYON, SÖZLEŞME) EKLEME MODALI -->
+  <dialog id="timelineDialog" closedby="any" aria-labelledby="timelineDialogTitle">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <h3 id="timelineDialogTitle">📂 Oda Tarihçesine Kayıt / Dosya / Email Ekle</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('timelineDialog')">✕</button>
+      </div>
+      <form onsubmit="window.app.saveTimelineEntry(event)">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Kayıt Türü (Filtre Kategorisi) *</label>
+            <select id="tlTypeSelect" class="select-field" style="width: 100%;" required>
+              <option value="meeting_note">📝 Toplantı Notu (Email Özeti)</option>
+              <option value="email">📩 Email / Yazışma</option>
+              <option value="proposal">💰 İlk Teklif</option>
+              <option value="revision">🔄 Revize Teklif / Revizyon</option>
+              <option value="contract">✍️ Sözleşme / Hukuk</option>
+              <option value="document">📄 Teknik Doküman / Sunum</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Teklif Tutarı (Varsa)</label>
+            <input type="text" id="tlAmountInput" class="input-field" style="width: 100%;" placeholder="Örn: $85,000" />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Başlık / Konu *</label>
+          <input type="text" id="tlTitleInput" class="input-field" style="width: 100%;" required placeholder="Örn: PoC Değerlendirme Toplantı Notu veya Revize Teklif v2" />
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">
+            İçerik / Email Metni / Toplantı Notu
+          </label>
+          <textarea
+            id="tlContentInput"
+            class="input-field"
+            style="width: 100%; min-height: 110px;"
+            placeholder="Toplantı notunu veya gönderilen emaili buraya yapıştırabilirsiniz. İçindeki '- ' ile başlayan aksiyon maddelerini aşağıdaki kutucukla otomatik 'Açık Aksiyonlar' listesine aktarabilirsiniz..."
+          ></textarea>
+        </div>
+
+        <div style="margin-bottom: 14px; padding: 10px 12px; background: var(--bg-page); border: 1px solid var(--border-light); border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+          <span id="tlFileBadge" style="font-size: 0.82rem; color: var(--text-secondary);">📎 Ekli dosya yok (İsteğe bağlı seçebilirsiniz)</span>
+          <input type="file" id="tlFileInput" style="font-size: 0.78rem;" />
+        </div>
+
+        <div style="margin-bottom: 16px; padding: 10px 12px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; color: #1E40AF; cursor: pointer;">
+            <input type="checkbox" id="tlExtractActionsCheckbox" checked />
+            ✨ Notun içindeki madde işaretli (- veya •) satırları otomatik "Toplantı Sonrası Aksiyonlar (Next Steps)" listesine de ekle
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-outline" onclick="window.app.closeDialog('timelineDialog')">İptal</button>
+          <button type="submit" class="btn btn-primary">Odaya Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 5. TEK TIKLA MESAJ / EMAIL TASLAĞI MODALI -->
+  <dialog id="messageDraftDialog" closedby="any" aria-labelledby="messageDraftTitle">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <h3 id="messageDraftTitle">✉️ Tek Tıkla Müşteri Email &amp; WhatsApp Taslağı</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('messageDraftDialog')">✕</button>
+      </div>
+      <div id="messageDraftBody"></div>
+    </div>
+  </dialog>
+
+  <!-- 6. SUPABASE BAĞLANTI & SQL ŞEMA MODALI -->
+  <dialog id="supabaseDialog" closedby="any" aria-labelledby="supabaseDialogTitle">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <h3 id="supabaseDialogTitle">⚡ Supabase Bulut Veritabanı &amp; Hibrit Senkronizasyon</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('supabaseDialog')">✕</button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">
+        Verileriniz şu an bilgisayarınızdaki yerel sunucuda (<code>data/dealroom_db.json</code>) anlık olarak saklanmaktadır. İstediğiniz an Supabase projenizin <strong>Project URL</strong> ve <strong>Anon Key</strong> bilgilerini girerek bulut senkronizasyonunu başlatabilirsiniz.
+      </p>
+      <form onsubmit="window.app.saveSupabaseConfig(event)">
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Supabase Project URL</label>
+          <input type="url" id="sbUrlInput" class="input-field" style="width: 100%;" placeholder="https://xyzcompany.supabase.co" />
+        </div>
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Supabase Anon Public Key</label>
+          <input type="text" id="sbKeyInput" class="input-field" style="width: 100%;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." />
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.app.copySqlSchema()">📋 Hazır Supabase SQL Tablo Kodunu Kopyala</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-outline" onclick="window.app.closeDialog('supabaseDialog')">Kapat</button>
+            <button type="submit" class="btn btn-primary">Bağla &amp; Senkronize Et</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- 7. KULLANICI GİRİŞ / DOĞRULAMA MODALI (@yapra.ai & @ardictech.com) -->
+  <dialog id="authDialog" closedby="any" aria-labelledby="authDialogTitle">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <h3 id="authDialogTitle">🔐 Kurumsal Oturum (@yapra.ai &amp; @ardictech.com)</h3>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('authDialog')">✕</button>
+      </div>
+      <form onsubmit="window.app.handleAuthLogin(event)">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+          Sadece <strong>@yapra.ai</strong> ve <strong>@ardictech.com</strong> uzantılı kurumsal e-posta adresleri ile işlem yapılabilir. Cihazınız tanındığı için oturumunuz açık kalır.
+        </p>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Kurumsal E-posta Adresiniz *</label>
+          <input type="email" id="authEmailInput" class="input-field" style="width: 100%;" required placeholder="isim@yapra.ai veya isim@ardictech.com" />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="submit" class="btn btn-primary">Oturumu Güncelle</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
