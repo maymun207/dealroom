@@ -169,12 +169,14 @@ class DealRoomApp {
     this.sbUrl = 'https://rcsfvpzmkqenghrngykf.supabase.co';
     this.sbKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjc2Z2cHpta3Flbmdocm5neWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNTk5NjcsImV4cCI6MjEwODkzNTk2N30.Bfgufx_3o-iYLrFj4aB18MvRLVPnsWdEwRk1m3kzfw4';
+    this.sbBucket = 'deal-documents';
     try {
       const cfgRes = await fetch('/api/config');
       if (cfgRes.ok) {
         const cfg = await cfgRes.json();
         if (cfg.supabaseUrl) this.sbUrl = cfg.supabaseUrl;
         if (cfg.supabaseKey) this.sbKey = cfg.supabaseKey;
+        if (cfg.storageBucket) this.sbBucket = cfg.storageBucket;
       }
     } catch (_) {
       // Fallback to localStorage or default dealroom-ai config
@@ -2896,21 +2898,54 @@ class DealRoomApp {
     if (fileObj) {
       fileName = fileObj.name;
       fileSize = Math.round(fileObj.size / 1024) + ' KB';
-      try {
-        const base64Data = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(fileObj);
-        });
-        const upRes = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName, base64Data })
-        });
-        const upJson = await upRes.json();
-        if (upJson.url) uploadedUrl = upJson.url;
-      } catch (err) {
-        console.warn('Dosya yükleme uyarısı:', err);
+      const safeName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const objectPath = `${comp.id}/${safeName}`;
+      const bucket = this.sbBucket || 'deal-documents';
+
+      // 1. Önce doğrudan Supabase Storage (deal-documents bucket) içerisine yükle
+      if (this.sbUrl && this.sbKey) {
+        try {
+          const sbUpRes = await fetch(`${this.sbUrl}/storage/v1/object/${bucket}/${objectPath}`, {
+            method: 'POST',
+            headers: {
+              apikey: this.sbKey,
+              Authorization: `Bearer ${this.sbKey}`,
+              'Content-Type': fileObj.type || 'application/octet-stream',
+              'x-upsert': 'true'
+            },
+            body: fileObj
+          });
+          if (sbUpRes.ok) {
+            uploadedUrl = `${this.sbUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
+          }
+        } catch (sbStorageErr) {
+          console.warn('Supabase Storage doğrudan yükleme uyarısı, API fallback deneniyor:', sbStorageErr);
+        }
+      }
+
+      // 2. Fallback: /api/upload üzerinden yükle
+      if (!uploadedUrl) {
+        try {
+          const base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(fileObj);
+          });
+          const upRes = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName,
+              base64Data,
+              contentType: fileObj.type || 'application/octet-stream',
+              companyId: comp.id
+            })
+          });
+          const upJson = await upRes.json();
+          if (upJson.url) uploadedUrl = upJson.url;
+        } catch (err) {
+          console.warn('Dosya yükleme uyarısı:', err);
+        }
       }
     }
 

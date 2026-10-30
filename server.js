@@ -2,6 +2,22 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+// Load .env.local if present
+const ENV_LOCAL_PATH = path.join(__dirname, '.env.local');
+if (fs.existsSync(ENV_LOCAL_PATH)) {
+  const envRaw = fs.readFileSync(ENV_LOCAL_PATH, 'utf8');
+  envRaw.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx > 0) {
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim();
+      if (!process.env[key]) process.env[key] = val;
+    }
+  });
+}
+
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'dealroom_db.json');
@@ -66,6 +82,7 @@ const server = http.createServer((req, res) => {
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
           process.env.SUPABASE_PUBLISHABLE_KEY ||
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjc2Z2cHpta3Flbmdocm5neWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNTk5NjcsImV4cCI6MjEwODkzNTk2N30.Bfgufx_3o-iYLrFj4aB18MvRLVPnsWdEwRk1m3kzfw4',
+        storageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'deal-documents',
         projectRef: 'rcsfvpzmkqenghrngykf'
       })
     );

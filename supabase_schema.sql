@@ -86,3 +86,25 @@ CREATE POLICY "dealroom_companies_access" ON public.companies
   FOR ALL TO anon, authenticated
   USING (true)
   WITH CHECK (true);
+
+-- 4. SUPABASE STORAGE BUCKET: deal-documents
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('deal-documents', 'deal-documents', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "deal_documents_select" ON storage.objects
+  FOR SELECT TO anon, authenticated
+  USING (bucket_id = 'deal-documents');
+
+CREATE POLICY "deal_documents_insert" ON storage.objects
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (bucket_id = 'deal-documents');
+
+CREATE POLICY "deal_documents_update" ON storage.objects
+  FOR UPDATE TO anon, authenticated
+  USING (bucket_id = 'deal-documents')
+  WITH CHECK (bucket_id = 'deal-documents');
+
+CREATE POLICY "deal_documents_delete" ON storage.objects
+  FOR DELETE TO anon, authenticated
+  USING (bucket_id = 'deal-documents');
