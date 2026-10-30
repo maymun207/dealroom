@@ -166,20 +166,68 @@ class DealRoomApp {
   }
 
   initSupabaseFromLocal() {
-    const url = localStorage.getItem('dealroom_sb_url');
-    const key = localStorage.getItem('dealroom_sb_key');
+    this.sbUrl = localStorage.getItem('dealroom_sb_url') || 'https://rcsfvpzmkqenghrngykf.supabase.co';
+    this.sbKey =
+      localStorage.getItem('dealroom_sb_key') ||
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjc2Z2cHpta3Flbmdocm5neWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNTk5NjcsImV4cCI6MjEwODkzNTk2N30.Bfgufx_3o-iYLrFj4aB18MvRLVPnsWdEwRk1m3kzfw4';
+    localStorage.setItem('dealroom_sb_url', this.sbUrl);
+    localStorage.setItem('dealroom_sb_key', this.sbKey);
     const btn = document.getElementById('supabaseStatusBtn');
-    if (url && key && window.supabase) {
+    if (btn) btn.textContent = '⚡ Supabase: dealroom-ai Aktif';
+    if (window.supabase && this.sbUrl && this.sbKey) {
       try {
-        this.supabaseClient = window.supabase.createClient(url, key);
-        if (btn) btn.textContent = '⚡ Supabase: Bulut Aktif';
+        this.supabaseClient = window.supabase.createClient(this.sbUrl, this.sbKey);
       } catch (e) {
-        console.warn('Supabase init error:', e);
+        console.warn('Supabase client init warning:', e);
       }
     }
   }
 
+  getSupabaseHeaders(extra = {}) {
+    return {
+      apikey: this.sbKey,
+      Authorization: `Bearer ${this.sbKey}`,
+      'Content-Type': 'application/json',
+      ...extra
+    };
+  }
+
   async loadDatabase() {
+    // 1. Önce canlı Supabase (dealroom-ai: rcsfvpzmkqenghrngykf) veritabanından çekmeyi dene
+    if (this.sbUrl && this.sbKey) {
+      try {
+        const [sellersRes, holdingsRes, companiesRes] = await Promise.all([
+          fetch(`${this.sbUrl}/rest/v1/sellers?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
+          fetch(`${this.sbUrl}/rest/v1/holdings?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
+          fetch(`${this.sbUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() })
+        ]);
+        if (sellersRes.ok && holdingsRes.ok && companiesRes.ok) {
+          const [sellers, holdings, companies] = await Promise.all([
+            sellersRes.json(),
+            holdingsRes.json(),
+            companiesRes.json()
+          ]);
+          if (Array.isArray(companies) && companies.length > 0) {
+            this.db = {
+              sellers: Array.isArray(sellers) ? sellers : [],
+              holdings: Array.isArray(holdings) ? holdings : [],
+              companies
+            };
+            // Yerel JSON önbelleğini de güncel tut
+            fetch('/api/db', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.db)
+            }).catch(() => {});
+            return;
+          }
+        }
+      } catch (sbErr) {
+        console.warn('Supabase okuma uyarısı, yerel veritabanına dönülüyor:', sbErr);
+      }
+    }
+
+    // 2. Fallback: Yerel sunucudan (/api/db) yükle
     try {
       const res = await fetch('/api/db');
       this.db = await res.json();
@@ -191,14 +239,67 @@ class DealRoomApp {
 
   async persistDatabase() {
     try {
+      // 1. Yerel JSON yedeğini kaydet
       await fetch('/api/db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(this.db)
-      });
-      if (this.supabaseClient) {
-        await this.supabaseClient.from('holdings').upsert(this.db.holdings);
-        await this.supabaseClient.from('companies').upsert(this.db.companies);
+      }).catch(() => {});
+
+      // 2. Canlı Supabase (dealroom-ai: rcsfvpzmkqenghrngykf) tablolarına Upsert yap
+      if (this.sbUrl && this.sbKey) {
+        const upsertHeaders = this.getSupabaseHeaders({
+          Prefer: 'resolution=merge-duplicates,return=minimal'
+        });
+        if (Array.isArray(this.db.sellers) && this.db.sellers.length > 0) {
+          await fetch(`${this.sbUrl}/rest/v1/sellers?on_conflict=id`, {
+            method: 'POST',
+            headers: upsertHeaders,
+            body: JSON.stringify(this.db.sellers)
+          });
+        }
+        if (Array.isArray(this.db.holdings) && this.db.holdings.length > 0) {
+          await fetch(`${this.sbUrl}/rest/v1/holdings?on_conflict=id`, {
+            method: 'POST',
+            headers: upsertHeaders,
+            body: JSON.stringify(this.db.holdings)
+          });
+        }
+        if (Array.isArray(this.db.companies) && this.db.companies.length > 0) {
+          const cleanCompanies = this.db.companies.map((c) => ({
+            id: c.id,
+            owner_id: c.owner_id || null,
+            owner_name: c.owner_name || '',
+            owner_email: c.owner_email || '',
+            is_private: Boolean(c.is_private),
+            holding_id: c.holding_id || null,
+            holding_name: c.holding_name || '',
+            name: c.name || '',
+            brand: c.brand || 'Yapra.ai',
+            funnel_status: c.funnel_status || 'Addressables',
+            stage: Number(c.stage || 1),
+            contact_person: c.contact_person || {},
+            sector: c.sector || '',
+            website: c.website || '',
+            city: c.city || 'İstanbul',
+            employee_size: c.employee_size || '',
+            deal_value: Number(c.deal_value || 0),
+            currency: c.currency || 'USD',
+            expected_invoice_date: c.expected_invoice_date || '',
+            summary_note: c.summary_note || '',
+            manual_red_flags: Array.isArray(c.manual_red_flags) ? c.manual_red_flags : [],
+            competitors: Array.isArray(c.competitors) ? c.competitors : [],
+            buyers: Array.isArray(c.buyers) ? c.buyers : [],
+            actions: Array.isArray(c.actions) ? c.actions : [],
+            timeline: Array.isArray(c.timeline) ? c.timeline : [],
+            updated_at: c.updated_at || new Date().toISOString()
+          }));
+          await fetch(`${this.sbUrl}/rest/v1/companies?on_conflict=id`, {
+            method: 'POST',
+            headers: upsertHeaders,
+            body: JSON.stringify(cleanCompanies)
+          });
+        }
       }
     } catch (e) {
       console.error('Kayıt hatası:', e);
