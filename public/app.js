@@ -72,7 +72,7 @@ class DealRoomApp {
   async init() {
     this.setupDialogLightDismissFallback();
     this.setupGlobalSearch();
-    await this.initSupabaseFromLocal();
+    await this.initCloudConfig();
     await this.loadDatabase();
 
     // Kayıtlı satıcı oturumu var mı kontrol et
@@ -165,10 +165,9 @@ class DealRoomApp {
     if (dlg && typeof dlg.close === 'function') dlg.close();
   }
 
-  async initSupabaseFromLocal() {
-    this.sbUrl = 'https://rcsfvpzmkqenghrngykf.supabase.co';
-    this.sbKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjc2Z2cHpta3Flbmdocm5neWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNTk5NjcsImV4cCI6MjEwODkzNTk2N30.Bfgufx_3o-iYLrFj4aB18MvRLVPnsWdEwRk1m3kzfw4';
+  async initCloudConfig() {
+    this.sbUrl = '';
+    this.sbKey = '';
     this.sbBucket = 'deal-documents';
     try {
       const cfgRes = await fetch('/api/config');
@@ -178,15 +177,9 @@ class DealRoomApp {
         if (cfg.supabaseKey) this.sbKey = cfg.supabaseKey;
         if (cfg.storageBucket) this.sbBucket = cfg.storageBucket;
       }
-    } catch (_) {
-      // Fallback to localStorage or default dealroom-ai config
-      this.sbUrl = localStorage.getItem('dealroom_sb_url') || this.sbUrl;
-      this.sbKey = localStorage.getItem('dealroom_sb_key') || this.sbKey;
+    } catch (err) {
+      console.error('Failed to load cloud runtime config (/api/config):', err);
     }
-    localStorage.setItem('dealroom_sb_url', this.sbUrl);
-    localStorage.setItem('dealroom_sb_key', this.sbKey);
-    const btn = document.getElementById('supabaseStatusBtn');
-    if (btn) btn.textContent = '⚡ Supabase: dealroom-ai Aktif';
     if (window.supabase && this.sbUrl && this.sbKey) {
       try {
         this.supabaseClient = window.supabase.createClient(this.sbUrl, this.sbKey);
@@ -206,7 +199,6 @@ class DealRoomApp {
   }
 
   async loadDatabase() {
-    // 1. Önce canlı Supabase (dealroom-ai: rcsfvpzmkqenghrngykf) veritabanından çekmeyi dene
     if (this.sbUrl && this.sbKey) {
       try {
         const [sellersRes, holdingsRes, companiesRes] = await Promise.all([
@@ -220,46 +212,35 @@ class DealRoomApp {
             holdingsRes.json(),
             companiesRes.json()
           ]);
-          if (Array.isArray(companies) && companies.length > 0) {
-            this.db = {
-              sellers: Array.isArray(sellers) ? sellers : [],
-              holdings: Array.isArray(holdings) ? holdings : [],
-              companies
-            };
-            // Yerel JSON önbelleğini de güncel tut
-            fetch('/api/db', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(this.db)
-            }).catch(() => {});
-            return;
-          }
+          this.db = {
+            sellers: Array.isArray(sellers) ? sellers : [],
+            holdings: Array.isArray(holdings) ? holdings : [],
+            companies: Array.isArray(companies) ? companies : []
+          };
+          return;
         }
       } catch (sbErr) {
-        console.warn('Supabase okuma uyarısı, yerel veritabanına dönülüyor:', sbErr);
+        console.warn('Direct Supabase REST fetch warning, falling back to serverless /api/db:', sbErr);
       }
     }
 
-    // 2. Fallback: Yerel sunucudan (/api/db) yükle
     try {
       const res = await fetch('/api/db');
-      this.db = await res.json();
-      if (!this.db.sellers) this.db.sellers = [];
+      if (res.ok) {
+        const data = await res.json();
+        this.db = {
+          sellers: Array.isArray(data.sellers) ? data.sellers : [],
+          holdings: Array.isArray(data.holdings) ? data.holdings : [],
+          companies: Array.isArray(data.companies) ? data.companies : []
+        };
+      }
     } catch (e) {
-      console.error('Veritabanı yüklenemedi:', e);
+      console.error('Supabase veritabanı yüklenemedi:', e);
     }
   }
 
   async persistDatabase() {
     try {
-      // 1. Yerel JSON yedeğini kaydet
-      await fetch('/api/db', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.db)
-      }).catch(() => {});
-
-      // 2. Canlı Supabase (dealroom-ai: rcsfvpzmkqenghrngykf) tablolarına Upsert yap
       if (this.sbUrl && this.sbKey) {
         const upsertHeaders = this.getSupabaseHeaders({
           Prefer: 'resolution=merge-duplicates,return=minimal'
@@ -305,7 +286,7 @@ class DealRoomApp {
             buyers: Array.isArray(c.buyers) ? c.buyers : [],
             actions: Array.isArray(c.actions) ? c.actions : [],
             timeline: Array.isArray(c.timeline) ? c.timeline : [],
-            updated_at: c.updated_at || new Date().toISOString()
+            updated_at: new Date().toISOString()
           }));
           await fetch(`${this.sbUrl}/rest/v1/companies?on_conflict=id`, {
             method: 'POST',
@@ -313,9 +294,17 @@ class DealRoomApp {
             body: JSON.stringify(cleanCompanies)
           });
         }
+        return;
       }
+
+      // Serverless /api/db endpoint (also writes directly to Supabase)
+      await fetch('/api/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.db)
+      });
     } catch (e) {
-      console.error('Kayıt hatası:', e);
+      console.error('Supabase kayıt hatası:', e);
     }
   }
 
@@ -3197,32 +3186,6 @@ class DealRoomApp {
     this.closeDialog('messageDraftDialog');
     await this.persistDatabase();
     this.render();
-  }
-
-  openSupabaseModal() {
-    document.getElementById('sbUrlInput').value = localStorage.getItem('dealroom_sb_url') || '';
-    document.getElementById('sbKeyInput').value = localStorage.getItem('dealroom_sb_key') || '';
-    this.openDialog('supabaseDialog');
-  }
-
-  async saveSupabaseConfig(e) {
-    e.preventDefault();
-    const url = document.getElementById('sbUrlInput').value.trim();
-    const key = document.getElementById('sbKeyInput').value.trim();
-    if (url && key) {
-      localStorage.setItem('dealroom_sb_url', url);
-      localStorage.setItem('dealroom_sb_key', key);
-      this.initSupabaseFromLocal();
-      await this.persistDatabase();
-    }
-    this.closeDialog('supabaseDialog');
-  }
-
-  async copySqlSchema() {
-    const res = await fetch('/api/schema');
-    const sql = await res.text();
-    await navigator.clipboard.writeText(sql);
-    alert('Supabase PostgreSQL tablo kurulum kodu panoya kopyalandı!');
   }
 
   openAuthModal() {

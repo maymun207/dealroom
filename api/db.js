@@ -1,18 +1,18 @@
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  'https://rcsfvpzmkqenghrngykf.supabase.co';
+function getEnvConfig() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    '';
+  return { supabaseUrl, supabaseKey };
+}
 
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjc2Z2cHpta3Flbmdocm5neWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNTk5NjcsImV4cCI6MjEwODkzNTk2N30.Bfgufx_3o-iYLrFj4aB18MvRLVPnsWdEwRk1m3kzfw4';
-
-function getHeaders(extra = {}) {
+function getHeaders(supabaseKey, extra = {}) {
   return {
-    apikey: SUPABASE_KEY,
-    Authorization: `Bearer ${SUPABASE_KEY}`,
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`,
     'Content-Type': 'application/json',
     ...extra
   };
@@ -27,12 +27,18 @@ module.exports = async (req, res) => {
     return res.status(204).end();
   }
 
+  const { supabaseUrl, supabaseKey } = getEnvConfig();
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(500).json({ error: 'Missing Supabase environment variables' });
+  }
+
   try {
     if (req.method === 'GET') {
+      const headers = getHeaders(supabaseKey);
       const [sellersRes, holdingsRes, companiesRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/sellers?select=*&order=created_at.asc`, { headers: getHeaders() }),
-        fetch(`${SUPABASE_URL}/rest/v1/holdings?select=*&order=created_at.asc`, { headers: getHeaders() }),
-        fetch(`${SUPABASE_URL}/rest/v1/companies?select=*&order=created_at.asc`, { headers: getHeaders() })
+        fetch(`${supabaseUrl}/rest/v1/sellers?select=*&order=created_at.asc`, { headers }),
+        fetch(`${supabaseUrl}/rest/v1/holdings?select=*&order=created_at.asc`, { headers }),
+        fetch(`${supabaseUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers })
       ]);
       const [sellers, holdings, companies] = await Promise.all([
         sellersRes.json(),
@@ -48,17 +54,19 @@ module.exports = async (req, res) => {
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const upsertHeaders = getHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' });
+      const upsertHeaders = getHeaders(supabaseKey, {
+        Prefer: 'resolution=merge-duplicates,return=minimal'
+      });
 
       if (body && Array.isArray(body.sellers) && body.sellers.length > 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/sellers?on_conflict=id`, {
+        await fetch(`${supabaseUrl}/rest/v1/sellers?on_conflict=id`, {
           method: 'POST',
           headers: upsertHeaders,
           body: JSON.stringify(body.sellers)
         });
       }
       if (body && Array.isArray(body.holdings) && body.holdings.length > 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/holdings?on_conflict=id`, {
+        await fetch(`${supabaseUrl}/rest/v1/holdings?on_conflict=id`, {
           method: 'POST',
           headers: upsertHeaders,
           body: JSON.stringify(body.holdings)
@@ -93,7 +101,7 @@ module.exports = async (req, res) => {
           timeline: Array.isArray(c.timeline) ? c.timeline : [],
           updated_at: c.updated_at || new Date().toISOString()
         }));
-        await fetch(`${SUPABASE_URL}/rest/v1/companies?on_conflict=id`, {
+        await fetch(`${supabaseUrl}/rest/v1/companies?on_conflict=id`, {
           method: 'POST',
           headers: upsertHeaders,
           body: JSON.stringify(cleanCompanies)

@@ -350,58 +350,6 @@
     </div>
   </dialog>
 
-  <!-- 6. SUPABASE BAĞLANTI & SQL ŞEMA MODALI -->
-  <dialog id="supabaseDialog" closedby="any" aria-labelledby="supabaseDialogTitle">
-    <div class="dialog-inner">
-      <div class="dialog-header">
-        <h3 id="supabaseDialogTitle">⚡ Supabase Bulut Veritabanı &amp; Hibrit Senkronizasyon</h3>
-        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('supabaseDialog')">✕</button>
-      </div>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">
-        Verileriniz şu an bilgisayarınızdaki yerel sunucuda (<code>data/dealroom_db.json</code>) anlık olarak saklanmaktadır. İstediğiniz an Supabase projenizin <strong>Project URL</strong> ve <strong>Anon Key</strong> bilgilerini girerek bulut senkronizasyonunu başlatabilirsiniz.
-      </p>
-      <form onsubmit="window.app.saveSupabaseConfig(event)">
-        <div style="margin-bottom: 10px;">
-          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Supabase Project URL</label>
-          <input type="url" id="sbUrlInput" class="input-field" style="width: 100%;" placeholder="https://xyzcompany.supabase.co" />
-        </div>
-        <div style="margin-bottom: 14px;">
-          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Supabase Anon Public Key</label>
-          <input type="text" id="sbKeyInput" class="input-field" style="width: 100%;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." />
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px;">
-          <button type="button" class="btn btn-outline btn-sm" onclick="window.app.copySqlSchema()">📋 Hazır Supabase SQL Tablo Kodunu Kopyala</button>
-          <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn btn-outline" onclick="window.app.closeDialog('supabaseDialog')">Kapat</button>
-            <button type="submit" class="btn btn-primary">Bağla &amp; Senkronize Et</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </dialog>
-
-  <!-- 7. KULLANICI GİRİŞ / DOĞRULAMA MODALI (@yapra.ai & @ardictech.com) -->
-  <dialog id="authDialog" closedby="any" aria-labelledby="authDialogTitle">
-    <div class="dialog-inner">
-      <div class="dialog-header">
-        <h3 id="authDialogTitle">🔐 Kurumsal Oturum (@yapra.ai &amp; @ardictech.com)</h3>
-        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('authDialog')">✕</button>
-      </div>
-      <form onsubmit="window.app.handleAuthLogin(event)">
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-          Sadece <strong>@yapra.ai</strong> ve <strong>@ardictech.com</strong> uzantılı kurumsal e-posta adresleri ile işlem yapılabilir. Cihazınız tanındığı için oturumunuz açık kalır.
-        </p>
-        <div style="margin-bottom: 12px;">
-          <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Kurumsal E-posta Adresiniz *</label>
-          <input type="email" id="authEmailInput" class="input-field" style="width: 100%;" required placeholder="isim@yapra.ai veya isim@ardictech.com" />
-        </div>
-        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-          <button type="submit" class="btn btn-primary">Oturumu Güncelle</button>
-        </div>
-      </form>
-    </div>
-  </dialog>
-
   <script src="/app.js"></script>
 </body>
 </html>
