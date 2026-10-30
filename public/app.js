@@ -72,7 +72,7 @@ class DealRoomApp {
   async init() {
     this.setupDialogLightDismissFallback();
     this.setupGlobalSearch();
-    this.initSupabaseFromLocal();
+    await this.initSupabaseFromLocal();
     await this.loadDatabase();
 
     // Kayıtlı satıcı oturumu var mı kontrol et
@@ -165,11 +165,22 @@ class DealRoomApp {
     if (dlg && typeof dlg.close === 'function') dlg.close();
   }
 
-  initSupabaseFromLocal() {
-    this.sbUrl = localStorage.getItem('dealroom_sb_url') || 'https://rcsfvpzmkqenghrngykf.supabase.co';
+  async initSupabaseFromLocal() {
+    this.sbUrl = 'https://rcsfvpzmkqenghrngykf.supabase.co';
     this.sbKey =
-      localStorage.getItem('dealroom_sb_key') ||
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjc2Z2cHpta3Flbmdocm5neWtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNTk5NjcsImV4cCI6MjEwODkzNTk2N30.Bfgufx_3o-iYLrFj4aB18MvRLVPnsWdEwRk1m3kzfw4';
+    try {
+      const cfgRes = await fetch('/api/config');
+      if (cfgRes.ok) {
+        const cfg = await cfgRes.json();
+        if (cfg.supabaseUrl) this.sbUrl = cfg.supabaseUrl;
+        if (cfg.supabaseKey) this.sbKey = cfg.supabaseKey;
+      }
+    } catch (_) {
+      // Fallback to localStorage or default dealroom-ai config
+      this.sbUrl = localStorage.getItem('dealroom_sb_url') || this.sbUrl;
+      this.sbKey = localStorage.getItem('dealroom_sb_key') || this.sbKey;
+    }
     localStorage.setItem('dealroom_sb_url', this.sbUrl);
     localStorage.setItem('dealroom_sb_key', this.sbKey);
     const btn = document.getElementById('supabaseStatusBtn');
