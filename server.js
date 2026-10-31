@@ -155,11 +155,17 @@ const server = http.createServer((req, res) => {
 
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'text/plain; charset=utf-8' });
+    res.writeHead(200, {
+      'Content-Type': MIME_TYPES[ext] || 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    });
     fs.createReadStream(filePath).pipe(res);
   } else {
     const indexHtml = path.join(PUBLIC_DIR, 'index.html');
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    });
     fs.createReadStream(indexHtml).pipe(res);
   }
 });
