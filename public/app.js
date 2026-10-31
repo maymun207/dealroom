@@ -57,155 +57,11 @@ const ARCHIVE_CATEGORIES = {
   case_study: { label: '🏆 Case Studies', badge: 'badge-both', tlType: 'document' }
 };
 
-const DEFAULT_ARCHIVE_ITEMS = [
-  {
-    id: 'arc-pres-1',
-    category: 'presentation',
-    brand: 'Yapra.ai',
-    title: 'Yapra.ai Kurumsal AI Dönüşüm & Agentic İş Akışları Sunumu (2026)',
-    subject: 'Yapra.ai — Kurumsal AI Dönüşüm ve Otonom Süreçler Sunumu',
-    content: 'Holdingler ve kurumsal şirketler için Yapra.ai otonom AI ajanları, ERP/CRM entegrasyonu, güvenlik katmanı ve 6 haftalık hızlı PoC yol haritasını içeren ana yönetici sunumu.',
-    file_name: 'Yapra_AI_Executive_Pitch_Deck_2026.pdf',
-    file_size: '4.2 MB',
-    file_url: '',
-    tags: ['Executive Deck', 'AI Agents', 'PoC Yol Haritası'],
-    author_name: 'Pazarlama & Satış Ekibi'
-  },
-  {
-    id: 'arc-pres-2',
-    category: 'presentation',
-    brand: 'ArdicTech',
-    title: 'ArdicTech Endüstriyel IoT, Edge AI & Akıllı Üretim Platformu Sunumu',
-    subject: 'ArdicTech — Endüstriyel IoT ve Üretimde Dijital İkiz Sunumu',
-    content: 'Üretim, enerji ve otomotiv tesislerinde uçtan uca IoT cihaz yönetimi, kestirimci bakım (Predictive Maintenance) ve OEE artışı sağlayan ArdicTech mimari sunumu.',
-    file_name: 'ArdicTech_Industrial_IoT_Platform_Deck.pdf',
-    file_size: '5.8 MB',
-    file_url: '',
-    tags: ['Endüstriyel IoT', 'Kestirimci Bakım', 'OEE'],
-    author_name: 'ArdicTech Çözüm Ekibi'
-  },
-  {
-    id: 'arc-email-1',
-    category: 'email_template',
-    brand: 'Yapra.ai',
-    title: 'İlk Temas (Cold / Warm Intro) — C-Level & Dijital Dönüşüm',
-    subject: '{{musteri_adi}} & Yapra.ai — Kurumsal AI Ajanları ile Süreç Otomasyonu',
-    content: `Merhaba {{yetkili_adi}} Bey/Hanım,\n\n{{musteri_adi}} bünyesinde yürüttüğünüz dijital dönüşüm ve operasyonel verimlilik çalışmalarını yakından takip ediyoruz.\n\nYapra.ai olarak Türkiye'nin önde gelen holding ve sanayi kuruluşlarında; mevcut ERP/CRM sistemlerinize dokunmadan haftalar içinde devreye giren kurumsal AI ajanlarıyla operasyonel iş yükünü %40'a varan oranda azaltıyoruz.\n\nÖnümüzdeki hafta {{musteri_adi}} özelinde hazırladığımız 20 dakikalık kısa kullanım senaryolarını ve canlı demomuzu paylaşmak isteriz. Salı veya Perşembe günü takviminizde uygun bir zaman aralığı var mıdır?\n\nSaygılarımızla,\n{{satici_adi}}\n{{satici_email}}`,
-    file_name: '',
-    file_size: '',
-    file_url: '',
-    tags: ['İlk Temas', 'C-Level', 'Demo Talebi'],
-    author_name: 'Satış Ekibi'
-  },
-  {
-    id: 'arc-email-2',
-    category: 'email_template',
-    brand: 'Her İkisi',
-    title: 'Toplantı Sonrası Özet & Next Steps (Engagement / Demo Sonrası)',
-    subject: '{{musteri_adi}} x {{marka}} — Toplantı Özeti, Sunum ve Sonraki Adımlar',
-    content: `Merhaba {{yetkili_adi}} Bey/Hanım,\n\nBugün {{musteri_adi}} ekibiyle gerçekleştirdiğimiz verimli {{marka}} toplantısı ve değerli katkılarınız için çok teşekkür ederiz.\n\nToplantımızda konuştuğumuz ana başlıklar ve kararlaştırdığımız sonraki adımlar (Next Steps) aşağıda yer almaktadır:\n{{acik_aksiyonlar}}\n\nToplantıda üzerinden geçtiğimiz sunum ve teknik dokümanları da ekte/aşağıdaki bağlantıda bilgilerinize sunarız.\n\nSaygılarımızla,\n{{satici_adi}}\n{{satici_email}}`,
-    file_name: '',
-    file_size: '',
-    file_url: '',
-    tags: ['Toplantı Özeti', 'Next Steps', 'Sunum Paylaşımı'],
-    author_name: 'Satış Ekibi'
-  },
-  {
-    id: 'arc-email-3',
-    category: 'email_template',
-    brand: 'Her İkisi',
-    title: 'Pilot / PoC ve Ticari Teklif Gönderim E-postası',
-    subject: '{{musteri_adi}} — {{marka}} Kapsam & Ticari Teklif Dokümanı',
-    content: `Merhaba {{yetkili_adi}} Bey/Hanım,\n\n{{musteri_adi}} teknik ve iş birimleriyle yaptığımız çalışma sonucunda, hedeflenen başarı kriterlerini (KPI & ROI) ve proje takvimini içeren {{marka}} teklifimizi hazırladık.\n\nTeklif kapsamında:\n- Faz 1: Hızlı Kurulum & Entegrasyon\n- Faz 2: Canlı Veri ile Doğrulama ve Kullanıcı Kabul Testleri\n- Faz 3: Kurumsal Yaygınlaştırma ve SLA Desteği\n\nTeklif dokümanını incelemenizin ardından Cuma günü 15 dakikalık kısa bir değerlendirme görüşmesi yapabiliriz.\n\nSaygılarımızla,\n{{satici_adi}}\n{{satici_email}}`,
-    file_name: '',
-    file_size: '',
-    file_url: '',
-    tags: ['Teklif Gönderimi', 'PoC', 'ROI'],
-    author_name: 'Satış Ekibi'
-  },
-  {
-    id: 'arc-doc-1',
-    category: 'document',
-    brand: 'Her İkisi',
-    title: 'Kurumsal Bilgi Güvenliği, KVKK, ISO 27001 & On-Prem / Private Cloud Mimarisi',
-    subject: '{{marka}} — Kurumsal Güvenlik, KVKK ve Mimari Uyumluluk Dokümanı',
-    content: 'IT Güvenlik (CISO) ve Hukuk ekiplerinin talep ettiği veri izolasyonu, Zero-Data-Retention, On-Premise / VPC kurulum seçenekleri, KVKK/GDPR uyumluluğu ve penetrasyon testi özet raporu.',
-    file_name: 'Security_KVKK_Architecture_Whitepaper_2026.pdf',
-    file_size: '2.1 MB',
-    file_url: '',
-    tags: ['KVKK', 'ISO 27001', 'IT Güvenlik', 'Teknik Alıcı'],
-    author_name: 'CTO Ofisi'
-  },
-  {
-    id: 'arc-doc-2',
-    category: 'document',
-    brand: 'Her İkisi',
-    title: 'Standart Karşılıklı Gizlilik Sözleşmesi (NDA) & PoC Çerçeve Sözleşmesi',
-    subject: '{{musteri_adi}} — Karşılıklı Gizlilik Sözleşmesi (NDA) Taslağı',
-    content: 'Hukuk ve satınalma departmanlarıyla hızlıca imzalanabilecek Türkçe/İngilizce çift dilli standart Karşılıklı Gizlilik Sözleşmesi (MNDA) ve Pilot/PoC protokol taslağı.',
-    file_name: 'Standart_Kurumsal_NDA_ve_PoC_Sozlesmesi.docx',
-    file_size: '640 KB',
-    file_url: '',
-    tags: ['NDA', 'Hukuk', 'Sözleşme Taslağı'],
-    author_name: 'Hukuk Müşavirliği'
-  },
-  {
-    id: 'arc-price-1',
-    category: 'price_list',
-    brand: 'Yapra.ai',
-    title: 'Yapra.ai 2026 Kurumsal Lisans, PoC ve Enterprise Paket Fiyat Listesi',
-    subject: 'Yapra.ai — 2026 Kurumsal Paketler ve Lisanslama Seçenekleri',
-    content: `• Starter / Pilot (PoC) Paketi (6 Hafta): $15,000 (Tek Seferlik — Yıllık lisanstan düşülür)\n• Business AI Agent Paketi (3 Departman / 5 Ajan): $48,000 / Yıl\n• Enterprise Holding Paketi (Sınırsız Ajan + Private VPC / On-Prem + 7/24 SLA): $95,000 / Yıl\n• Holding Çoklu Şirket İndirimi: Aynı holding çatısı altındaki 2. ve 3. şirketlerde %20 grup indirimi uygulanır.`,
-    file_name: 'Yapra_AI_2026_Enterprise_Price_List.pdf',
-    file_size: '1.4 MB',
-    file_url: '',
-    tags: ['Fiyat Listesi', 'USD', 'Holding İndirimi', 'PoC Fiyatı'],
-    author_name: 'Finans & Satış Operasyon'
-  },
-  {
-    id: 'arc-price-2',
-    category: 'price_list',
-    brand: 'ArdicTech',
-    title: 'ArdicTech 2026 Endüstriyel IoT & Edge AI Fabrika Lisanslama Fiyat Listesi',
-    subject: 'ArdicTech — 2026 Fabrika & Hat Bazlı Lisanslama Fiyat Listesi',
-    content: `• Tek Üretim Hattı Pilot Kurulumu (Sensör Entegrasyonu + Dashboard): $20,000\n• Fabrika Tam Kapsam Lisansı (100 Ekipmana Kadar + Kestirimci Bakım AI): $65,000 / Yıl\n• Çoklu Tesis / Holding Endüstri 4.0 Paketi (Sınırsız Tesis + Özel Edge Sunucu): $140,000 / Yıl\n• Yıllık Bakım, OTA Güncelleme ve 7/24 Saha SLA Desteği dahildir.`,
-    file_name: 'ArdicTech_2026_IoT_Pricing_Packages.pdf',
-    file_size: '1.7 MB',
-    file_url: '',
-    tags: ['Fiyat Listesi', 'Fabrika Lisansı', 'IoT', 'SLA'],
-    author_name: 'ArdicTech Ticari Ekip'
-  },
-  {
-    id: 'arc-case-1',
-    category: 'case_study',
-    brand: 'Yapra.ai',
-    title: 'Case Study: Büyük Sanayi Holdinginde Satınalma & Tedarik Zinciri AI Otomasyonu (%42 Zaman Tasarrufu)',
-    subject: 'Yapra.ai Başarı Hikayesi — Tedarik Zinciri ve Satınalma Süreçlerinde %42 Hızlanma',
-    content: `PROBLEM: Yıllık 50.000+ teklif ve sözleşme dokümanının manuel incelenmesi nedeniyle satınalma onay sürelerinin 14 güne uzaması.\n\nÇÖZÜM: Yapra.ai Doküman & SAP Entegrasyon Ajanları ile tedarikçi tekliflerinin otomatik karşılaştırılması, riskli maddelerin (Red Flag) tespiti ve tek tıkla onay özeti.\n\nSONUÇLAR:\n• Süreç tamamlanma süresinde %42 kısalma (14 günden 8 güne düşüş)\n• Yıllık $320,000 operasyonel maliyet tasarrufu\n• 5 haftada canlıya geçiş (Go-Live)`,
-    file_name: 'Case_Study_Yapra_SupplyChain_AI.pdf',
-    file_size: '3.1 MB',
-    file_url: '',
-    tags: ['Case Study', 'ROI %300+', 'Satınalma', 'SAP Entegrasyonu'],
-    author_name: 'Müşteri Başarı Ekibi'
-  },
-  {
-    id: 'arc-case-2',
-    category: 'case_study',
-    brand: 'ArdicTech',
-    title: 'Case Study: Otomotiv & Enerji Üretim Tesisinde Kestirimci Bakım ile Plansız Duruşlarda %37 Azalma',
-    subject: 'ArdicTech Başarı Hikayesi — Üretim Hattında Plansız Duruşların %37 Azaltılması',
-    content: `PROBLEM: Kritik üretim hatlarındaki plansız makine arızaları nedeniyle yıllık $1.2M üretim kaybı.\n\nÇÖZÜM: ArdicTech Edge IoT geçitleri ve gerçek zamanlı titreşim/sıcaklık AI anomali tespiti ile arızaların 72 saat önceden haber verilmesi.\n\nSONUÇLAR:\n• Plansız duruşlarda %37 azalma\n• OEE (Toplam Ekipman Etkinliği) skorunda +9.4 puan artış\n• Yatırımın geri dönüş süresi (Payback Period): 4.5 Ay`,
-    file_name: 'Case_Study_ArdicTech_Predictive_Maintenance.pdf',
-    file_size: '3.6 MB',
-    file_url: '',
-    tags: ['Case Study', 'OEE Artışı', 'Kestirimci Bakım', 'Üretim'],
-    author_name: 'ArdicTech Mühendislik'
-  }
-];
+const DEFAULT_ARCHIVE_ITEMS = [];
 
 class DealRoomApp {
   constructor() {
-    this.db = { sellers: [], holdings: [], companies: [], archive_items: [...DEFAULT_ARCHIVE_ITEMS] };
+    this.db = { sellers: [], holdings: [], companies: [], archive_items: [] };
     this.currentSeller = null; // Satıcı girişi / kaydı
     this.currentView = 'funnel'; // 'auth' | 'funnel' | 'room'
     this.activeFunnelBox = 'Engaged'; // 'Addressables' | 'Contacted' | 'Engaged'
@@ -522,6 +378,15 @@ class DealRoomApp {
         if (extraPayload && extraPayload.delete_archive_id) {
           await fetch(
             `${this.sbUrl}/rest/v1/archive_items?id=eq.${encodeURIComponent(extraPayload.delete_archive_id)}`,
+            {
+              method: 'DELETE',
+              headers: this.getSupabaseHeaders()
+            }
+          );
+        }
+        if (extraPayload && extraPayload.delete_company_id) {
+          await fetch(
+            `${this.sbUrl}/rest/v1/companies?id=eq.${encodeURIComponent(extraPayload.delete_company_id)}`,
             {
               method: 'DELETE',
               headers: this.getSupabaseHeaders()
@@ -2087,6 +1952,14 @@ class DealRoomApp {
           <button class="btn btn-outline btn-sm" style="background: #FFFFFF;" onclick="window.app.openEditCompanyModal('${comp.id}')">
             ✏️ Genel Kartı Düzenle
           </button>
+          <button
+            class="btn btn-outline btn-sm"
+            style="background: #FFFFFF; color: #DC2626;"
+            onclick="window.app.deleteCompany('${comp.id}')"
+            title="Müşteri Odasını Sil"
+          >
+            🗑️ Sil
+          </button>
         </div>
       </div>
 
@@ -3606,6 +3479,19 @@ class DealRoomApp {
     this.closeDialog('holdingDialog');
     await this.persistDatabase();
     this.render();
+  }
+
+  async deleteCompany(compId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    if (!confirm(`"${comp.name}" müşteri odasını silmek istediğinize emin misiniz?`)) return;
+    this.db.companies = (this.db.companies || []).filter((c) => c.id !== compId);
+    if (this.activeCompanyId === compId) {
+      this.activeCompanyId = null;
+      this.currentView = 'funnel';
+    }
+    this.render();
+    await this.persistDatabase({ delete_company_id: compId });
   }
 
   interpolateTemplateForCompany(rawText, comp) {

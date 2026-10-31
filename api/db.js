@@ -138,6 +138,12 @@ module.exports = async (req, res) => {
           headers: getHeaders(supabaseKey)
         });
       }
+      if (body && body.delete_company_id) {
+        await fetch(`${supabaseUrl}/rest/v1/companies?id=eq.${encodeURIComponent(body.delete_company_id)}`, {
+          method: 'DELETE',
+          headers: getHeaders(supabaseKey)
+        });
+      }
       return res.status(200).json({ ok: true });
     }
 
