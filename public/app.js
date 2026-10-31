@@ -2883,6 +2883,10 @@ class DealRoomApp {
     return filtered
       .map((item) => {
         const meta = TIMELINE_TYPES[item.type] || { label: 'Kayıt', badge: 'badge-neutral' };
+        const cleanTitle = (item.title || '').replace(/^📩\s*/, '').trim();
+        const cleanContent = (item.content || '').trim();
+        const isOnlySubject = !cleanContent || cleanContent === cleanTitle || cleanContent === item.title;
+
         return `
           <div class="timeline-card">
             <div class="timeline-card-header">
@@ -2891,11 +2895,43 @@ class DealRoomApp {
                 <strong style="font-size: 0.9rem;">${item.title}</strong>
                 ${item.amount ? `<span class="badge badge-yapra">${item.amount}</span>` : ''}
               </div>
-              <span style="font-size: 0.74rem; color: var(--text-muted);">${item.created_at || ''}</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 0.74rem; color: var(--text-muted); margin-right: 4px;">${item.created_at || ''}</span>
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  style="padding: 2px 8px; font-size: 0.72rem; background: #FFFFFF;"
+                  onclick="window.app.openEditTimelineEntry('${comp.id}', '${item.id}')"
+                  title="Bu kaydın içeriğini düzenle veya metin yapıştır"
+                >
+                  ✏️ Düzenle
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  style="padding: 2px 8px; font-size: 0.72rem; color: #DC2626; border-color: #FECACA; background: #FFFFFF;"
+                  onclick="window.app.deleteTimelineEntry('${comp.id}', '${item.id}')"
+                  title="Bu kaydı sil"
+                >
+                  🗑️ Sil
+                </button>
+              </div>
             </div>
             ${
-              item.content
-                ? `<div style="font-size: 0.83rem; color: var(--text-secondary); white-space: pre-line; margin-top: 4px;">${item.content}</div>`
+              item.type === 'email' && isOnlySubject
+                ? `<div style="margin-top: 8px; padding: 10px 12px; background: #FFFBEB; border: 1px dashed #F59E0B; border-radius: 8px; font-size: 0.8rem; color: #92400E; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                    <span>⚠️ <strong>Sol listeden sürüklendiği için Apple Mail yalnızca mail başlığını iletti.</strong> Mailin içindeki metni kopyalayıp (<code>Cmd+C</code>) sağdaki butona tıklayarak içeriği ekleyebilirsiniz:</span>
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-sm"
+                      style="background: #FFFFFF; border-color: #F59E0B; color: #92400E; font-weight: 700;"
+                      onclick="window.app.pasteBodyIntoTimelineItem('${comp.id}', '${item.id}')"
+                    >
+                      📋 Kopyalanan Mail İçeriğini Buraya Yapıştır
+                    </button>
+                  </div>`
+                : item.content
+                ? `<div style="font-size: 0.84rem; color: var(--text-secondary); white-space: pre-line; margin-top: 8px; padding: 10px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; max-height: 260px; overflow-y: auto;">${item.content}</div>`
                 : ''
             }
             ${
@@ -3403,11 +3439,13 @@ class DealRoomApp {
       return;
     }
 
-    // DURUM 2: Dosya değil ama seçili e-posta metni sürüklendiyse
+    // DURUM 2: Dosya değil ama mailin içinden seçili e-posta metni sürüklendiyse
+    // (Not: Apple Mail sol listesinden satır sürüklendiğinde droppedUri 'message:...' olur ve droppedPlain yalnızca Konu başlığını içerir!)
     const droppedPlain = (dataTransfer.getData('text/plain') || '').trim();
     const droppedUri = (dataTransfer.getData('text/uri-list') || '').trim();
+    const isMailRowDrag = droppedUri.startsWith('message:') || droppedPlain.startsWith('message:');
 
-    if (droppedPlain && !droppedPlain.startsWith('message:')) {
+    if (droppedPlain && !isMailRowDrag) {
       const firstLine = droppedPlain.split(/\r?\n/)[0].slice(0, 75) || 'Sürüklenen E-posta / Not';
       comp.timeline = comp.timeline || [];
       comp.timeline.unshift({
@@ -3430,16 +3468,17 @@ class DealRoomApp {
       return;
     }
 
-    // DURUM 3: Apple Mail'den doğrudan liste satırı sürüklendiğinde Masaüstüne indirmeye gerek kalmadan Apple Mail Köprüsü ile çek!
-    await this.fetchEmailsFromAppleMailBridge(comp.id);
+    // DURUM 3: Apple Mail'den doğrudan liste satırı sürüklendiğinde
+    const draggedSubject = !droppedPlain.startsWith('message:') ? droppedPlain : '';
+    await this.fetchEmailsFromAppleMailBridge(comp.id, draggedSubject);
   }
 
-  async fetchEmailsFromAppleMailBridge(compId) {
+  async fetchEmailsFromAppleMailBridge(compId, fallbackSubject = '') {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
 
     this.uploadStatusType = 'loading';
-    this.uploadStatusMessage = '⏳ Apple Mail\'de seçili/sürüklenen mailler doğrudan okunuyor (Masaüstüne kaydetmeye gerek yok)...';
+    this.uploadStatusMessage = '⏳ Apple Mail\'de seçili/sürüklenen mailler doğrudan okunuyor...';
     this.render();
 
     const endpoints = ['/api/apple-mail', 'http://localhost:3000/api/apple-mail'];
@@ -3496,23 +3535,91 @@ class DealRoomApp {
       this.autoEvaluateCompanyFunnel(comp);
       await this.persistDatabase();
       this.uploadStatusType = 'success';
-      this.uploadStatusMessage = `✅ Apple Mail'den ${savedTitles.length} e-posta (${savedTitles.join(', ')}) Masaüstüne indirilmeden doğrudan "${comp.name}" odasına kaydedildi!`;
+      this.uploadStatusMessage = `✅ Apple Mail'den ${savedTitles.length} e-posta (${savedTitles.join(', ')}) tüm içeriğiyle "${comp.name}" odasına kaydedildi!`;
       this.render();
       return;
     }
 
-    if (bridgeData && bridgeData.emails.length === 0) {
+    // Eğer sol listeden sürüklendiyse ve Mac güvenlik izni nedeniyle yalnızca Konu başlığı geldiyse:
+    if (fallbackSubject) {
       this.uploadStatusType = 'error';
       this.uploadStatusMessage =
-        '⚠️ Apple Mail\'de şu an seçili bir e-posta bulunamadı. Lütfen Apple Mail\'de ilgili mail(ler)e tıklayıp seçin ve tekrar sürükleyin veya "📩 Apple Mail\'de Seçili Mailleri Tek Tıkla Çek" butonuna basın.';
+        `⚠️ Sol listeden sürüklediğinizde Mac yalnızca mailin Konu başlığını ("${fallbackSubject}") iletir, gövde metnini gizler. Mailin sağ tarafındaki (içindeki) metni seçip sürükleyin VEYA mailin içindeyken Cmd+A ve Cmd+C yapıp aşağıya Cmd+V yapıştırın!`;
       this.render();
+      this.openTimelineModal(comp.id);
+      const titleInput = document.getElementById('tlTitleInput');
+      const contentInput = document.getElementById('tlContentInput');
+      if (titleInput) titleInput.value = fallbackSubject;
+      if (contentInput) {
+        contentInput.placeholder = 'Mailin içindeki yazıyı kopyalayıp (Cmd+A -> Cmd+C) buraya Cmd+V ile yapıştırın...';
+        setTimeout(() => contentInput.focus(), 80);
+      }
       return;
     }
 
-    // Eğer bulut sekmesinden bağlanılıyorsa ve yerel köprü yanıt vermediyse Panodan (Clipboard) okumayı dene
     this.uploadStatusType = 'error';
     this.uploadStatusMessage =
-      '💡 Masaüstüne kaydetmeden eklemek için: Mailin içindeyken Cmd+A ve Cmd+C ile kopyalayıp bu sayfada doğrudan Cmd+V yapın (veya "📋 Kopyalanan Maili Yapıştır" butonuna tıklayın).';
+      '💡 Mailin tüm içeriğinin görünmesi için: Mailin sağ tarafındaki (okuma alanındaki) metni kopyalayıp (Cmd+A ve Cmd+C) bu sayfada doğrudan Cmd+V yapın veya seçili metni buraya sürükleyin!';
+    this.render();
+  }
+
+  async pasteBodyIntoTimelineItem(compId, itemId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    const item = (comp.timeline || []).find((t) => t.id === itemId);
+    if (!item) return;
+
+    let text = '';
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        text = (await navigator.clipboard.readText()).trim();
+      } catch (_err) {
+        // Pano izni yoksa düzenleme penceresini aç
+      }
+    }
+
+    if (!text) {
+      this.openEditTimelineEntry(compId, itemId);
+      return;
+    }
+
+    item.content = text.slice(0, 6000);
+    await this.persistDatabase();
+    this.uploadStatusType = 'success';
+    this.uploadStatusMessage = `✅ Mail içeriği "${item.title}" kaydına başarıyla eklendi!`;
+    this.render();
+  }
+
+  openEditTimelineEntry(compId, itemId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    const item = (comp.timeline || []).find((t) => t.id === itemId);
+    if (!item) return;
+
+    this.activeCompanyId = compId;
+    this.editingTimelineItemId = itemId;
+    this.openTimelineModal(compId, null, true);
+
+    const typeSelect = document.getElementById('tlTypeSelect');
+    const titleInput = document.getElementById('tlTitleInput');
+    const contentInput = document.getElementById('tlContentInput');
+    const amountInput = document.getElementById('tlAmountInput');
+
+    if (typeSelect) typeSelect.value = item.type || 'email';
+    if (titleInput) titleInput.value = (item.title || '').replace(/^📩\s*/, '');
+    if (contentInput) {
+      const cleanTitle = (item.title || '').replace(/^📩\s*/, '').trim();
+      contentInput.value = item.content === cleanTitle ? '' : item.content || '';
+      setTimeout(() => contentInput.focus(), 80);
+    }
+    if (amountInput) amountInput.value = item.amount || '';
+  }
+
+  async deleteTimelineEntry(compId, itemId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    comp.timeline = (comp.timeline || []).filter((t) => t.id !== itemId);
+    await this.persistDatabase();
     this.render();
   }
 
@@ -3615,7 +3722,8 @@ class DealRoomApp {
     }
   }
 
-  openTimelineModal(compId, droppedFile = null) {
+  openTimelineModal(compId, droppedFile = null, keepEditId = false) {
+    if (!keepEditId) this.editingTimelineItemId = null;
     this.pendingDroppedFile = droppedFile;
     this.selectedTimelineArchiveItem = null;
     const fileBadge = document.getElementById('tlFileBadge');
@@ -3756,18 +3864,32 @@ class DealRoomApp {
     }
 
     comp.timeline = comp.timeline || [];
-    comp.timeline.unshift({
-      id: 't-' + Date.now(),
-      type,
-      title,
-      content,
-      amount,
-      file_name: fileName,
-      file_size: fileSize,
-      file_url: uploadedUrl,
-      author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
-      created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
-    });
+    if (this.editingTimelineItemId) {
+      const existing = comp.timeline.find((t) => t.id === this.editingTimelineItemId);
+      if (existing) {
+        existing.type = type;
+        existing.title = type === 'email' && !title.startsWith('📩') ? `📩 ${title}` : title;
+        existing.content = content;
+        existing.amount = amount;
+        if (fileName) existing.file_name = fileName;
+        if (fileSize) existing.file_size = fileSize;
+        if (uploadedUrl) existing.file_url = uploadedUrl;
+      }
+      this.editingTimelineItemId = null;
+    } else {
+      comp.timeline.unshift({
+        id: 't-' + Date.now(),
+        type,
+        title,
+        content,
+        amount,
+        file_name: fileName,
+        file_size: fileSize,
+        file_url: uploadedUrl,
+        author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
+        created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
+      });
+    }
 
     if (type === 'proposal' && comp.stage < 6) comp.stage = 6;
     if (type === 'revision' && comp.stage < 7) comp.stage = 7;
