@@ -2226,39 +2226,21 @@ class DealRoomApp {
           <div
             id="roomQuickDropzone"
             class="dropzone-box"
-            style="margin-top: 14px; margin-bottom: 0; padding: 12px 16px; background: #FFFFFF; border: 1.5px dashed #93C5FD; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;"
+            style="margin-top: 14px; margin-bottom: 0; padding: 10px 16px; background: #FFFFFF; border: 1.5px dashed #93C5FD; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;"
             onclick="window.app.openTimelineModal('${comp.id}')"
           >
             <div style="display: flex; align-items: center; gap: 10px; text-align: left;">
-              <span style="font-size: 1.35rem;">📥</span>
+              <span style="font-size: 1.25rem;">📥</span>
               <div>
-                <div style="font-weight: 700; font-size: 0.86rem; color: #0D1B3E;">
-                  Apple Mail'den Doğrudan Sürükleyin, <code>Cmd+V</code> ile Yapıştırın veya Doküman Bırakın
+                <div style="font-weight: 700; font-size: 0.88rem; color: #0D1B3E;">
+                  Sürükleyin ve Bırakın
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">
-                  Masaüstüne kaydetmeye gerek yok! Apple Mail'den sürükleyin, kopyalayıp yapıştırın veya PDF/Word bırakın
+                <div style="font-size: 0.74rem; color: var(--text-muted);">
+                  E-posta, Teklif, Sözleşme veya Doküman
                 </div>
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" onclick="event.stopPropagation()">
-              <button
-                type="button"
-                class="btn btn-outline btn-sm"
-                style="background: #FFFFFF; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;"
-                onclick="window.app.fetchEmailsFromAppleMailBridge('${comp.id}')"
-                title="Apple Mail'de seçili olan e-postaları masaüstüne kaydetmeden doğrudan odaya çeker"
-              >
-                📩 Apple Mail'den Seçili Mailleri Çek
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline btn-sm"
-                style="background: #FFFFFF; font-weight: 700;"
-                onclick="window.app.pasteEmailFromClipboard('${comp.id}')"
-                title="Kopyaladığınız (Cmd+C) mail metnini tek tıkla odaya kaydeder"
-              >
-                📋 Kopyalanan Maili Yapıştır
-              </button>
               <button
                 type="button"
                 class="btn btn-outline btn-sm"
@@ -2502,38 +2484,26 @@ class DealRoomApp {
 
     const fullTimelineHtml = `
       ${statusBannerHtml}
-      <div class="dropzone-box" id="roomDropzone" style="background: #FFFFFF;" onclick="window.app.openTimelineModal('${comp.id}')">
-        <div style="font-size: 1.3rem; margin-bottom: 4px;">📥</div>
-        <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);">
-          Apple Mail'den Doğrudan Sürükleyin, <code>Cmd+V</code> ile Yapıştırın veya Doküman (PDF, Word, Excel) Bırakın
+      <div class="dropzone-box" id="roomDropzone" style="background: #FFFFFF; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;" onclick="window.app.openTimelineModal('${comp.id}')">
+        <div style="display: flex; align-items: center; gap: 10px; text-align: left;">
+          <span style="font-size: 1.25rem;">📥</span>
+          <div>
+            <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);">
+              Sürükleyin ve Bırakın
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-muted);">
+              E-posta, Teklif, Sözleşme veya Doküman
+            </div>
+          </div>
         </div>
-        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px;">
-          Masaüstüne kaydetmeye gerek olmadan doğrudan Apple Mail'den sürükleyebilir veya aşağıdaki tek tık butonlarını kullanabilirsiniz:
-        </div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;" onclick="event.stopPropagation()">
-          <button
-            type="button"
-            class="btn btn-outline btn-sm"
-            style="background: #FFFFFF; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;"
-            onclick="window.app.fetchEmailsFromAppleMailBridge('${comp.id}')"
-          >
-            📩 Apple Mail'de Seçili Mailleri Tek Tıkla Çek
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline btn-sm"
-            style="background: #FFFFFF; font-weight: 700;"
-            onclick="window.app.pasteEmailFromClipboard('${comp.id}')"
-          >
-            📋 Panodaki (Kopyalanan) Maili Anında Kaydet
-          </button>
+        <div style="display: flex; align-items: center; gap: 8px;" onclick="event.stopPropagation()">
           <button
             type="button"
             class="btn btn-outline btn-sm"
             style="background: #FFFFFF;"
             onclick="window.app.openTimelineModal('${comp.id}')"
           >
-            ➕ Form Aç (Not + Dosya)
+            ➕ Elle Ekle
           </button>
         </div>
       </div>
