@@ -40,12 +40,24 @@ const STANDARD_WINS_14 = [
   'Prestij / Holdingde Örnek Proje Çıkarma'
 ];
 
+const STANDARD_PRODUCTS_8 = [
+  'Danışmanlık',
+  'Digital Transformasyon Ürünleri',
+  'ARMES',
+  'IoT-Ignite',
+  'Yapra.ai',
+  'CWF',
+  'Analiz',
+  'Pilot'
+];
+
 const TIMELINE_TYPES = {
   meeting_note: { label: '📝 Toplantı Notu', badge: 'badge-ardic' },
   email: { label: '📩 Email / Yazışma', badge: 'badge-neutral' },
   proposal: { label: '💰 İlk Teklif', badge: 'badge-yapra' },
   revision: { label: '🔄 Revize Teklif', badge: 'badge-warning' },
-  contract: { label: '✍️ Sözleşme', badge: 'badge-both' },
+  contract_draft: { label: '📝 Sözleşme Draft', badge: 'badge-warning' },
+  contract: { label: '📜 Final Sözleşme', badge: 'badge-both' },
   document: { label: '📄 Doküman', badge: 'badge-neutral' }
 };
 
@@ -61,7 +73,7 @@ const DEFAULT_ARCHIVE_ITEMS = [];
 
 class DealRoomApp {
   constructor() {
-    this.db = { sellers: [], holdings: [], companies: [], archive_items: [] };
+    this.db = { sellers: [], holdings: [], companies: [], archive_items: [], trash_items: [] };
     this.currentSeller = null; // Satıcı girişi / kaydı
     this.currentView = 'funnel'; // 'auth' | 'funnel' | 'room'
     this.activeFunnelBox = 'Engaged'; // 'Addressables' | 'Contacted' | 'Engaged'
@@ -278,25 +290,28 @@ class DealRoomApp {
   async loadDatabase() {
     if (this.sbUrl && this.sbKey) {
       try {
-        const [sellersRes, holdingsRes, companiesRes, archiveRes] = await Promise.all([
+        const [sellersRes, holdingsRes, companiesRes, archiveRes, trashRes] = await Promise.all([
           fetch(`${this.sbUrl}/rest/v1/sellers?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
           fetch(`${this.sbUrl}/rest/v1/holdings?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
           fetch(`${this.sbUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
-          fetch(`${this.sbUrl}/rest/v1/archive_items?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() })
+          fetch(`${this.sbUrl}/rest/v1/archive_items?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
+          fetch(`${this.sbUrl}/rest/v1/trash_items?select=*&order=deleted_at.desc`, { headers: this.getSupabaseHeaders() })
         ]);
         if (sellersRes.ok && holdingsRes.ok && companiesRes.ok) {
-          const [sellers, holdings, companies, archive_items] = await Promise.all([
+          const [sellers, holdings, companies, archive_items, trash_items] = await Promise.all([
             sellersRes.json(),
             holdingsRes.json(),
             companiesRes.json(),
-            archiveRes.ok ? archiveRes.json() : []
+            archiveRes.ok ? archiveRes.json() : [],
+            trashRes.ok ? trashRes.json() : []
           ]);
           this.db = {
             sellers: Array.isArray(sellers) ? sellers : [],
             holdings: Array.isArray(holdings) ? holdings : [],
             companies: Array.isArray(companies) ? companies : [],
             archive_items:
-              Array.isArray(archive_items) && archive_items.length > 0 ? archive_items : [...DEFAULT_ARCHIVE_ITEMS]
+              Array.isArray(archive_items) && archive_items.length > 0 ? archive_items : [...DEFAULT_ARCHIVE_ITEMS],
+            trash_items: Array.isArray(trash_items) ? trash_items : []
           };
           return;
         }
@@ -316,7 +331,8 @@ class DealRoomApp {
           archive_items:
             Array.isArray(data.archive_items) && data.archive_items.length > 0
               ? data.archive_items
-              : [...DEFAULT_ARCHIVE_ITEMS]
+              : [...DEFAULT_ARCHIVE_ITEMS],
+          trash_items: Array.isArray(data.trash_items) ? data.trash_items : []
         };
       }
     } catch (e) {
@@ -355,6 +371,7 @@ class DealRoomApp {
             holding_name: c.holding_name || '',
             name: c.name || '',
             brand: c.brand || 'Yapra.ai',
+            products: Array.isArray(c.products) ? c.products : [],
             funnel_status: c.funnel_status || 'Addressables',
             stage: Number(c.stage || 1),
             contact_person: c.contact_person || {},
@@ -365,6 +382,10 @@ class DealRoomApp {
             deal_value: Number(c.deal_value || 0),
             currency: c.currency || 'USD',
             expected_invoice_date: c.expected_invoice_date || '',
+            payment_date: c.payment_date || '',
+            delivery_date: c.delivery_date || '',
+            contract_status: c.contract_status || '',
+            deliveries: Array.isArray(c.deliveries) ? c.deliveries : [],
             summary_note: c.summary_note || '',
             manual_red_flags: Array.isArray(c.manual_red_flags) ? c.manual_red_flags : [],
             competitors: Array.isArray(c.competitors) ? c.competitors : [],
@@ -401,6 +422,24 @@ class DealRoomApp {
             body: JSON.stringify(cleanArchive)
           });
         }
+        if (Array.isArray(this.db.trash_items) && this.db.trash_items.length > 0) {
+          const cleanTrash = this.db.trash_items.map((t) => ({
+            id: t.id,
+            item_type: t.item_type || 'item',
+            item_title: t.item_title || '',
+            company_id: t.company_id || '',
+            company_name: t.company_name || '',
+            payload: t.payload || {},
+            deleted_by_name: t.deleted_by_name || '',
+            deleted_by_email: t.deleted_by_email || '',
+            deleted_at: t.deleted_at || new Date().toISOString()
+          }));
+          await fetch(`${this.sbUrl}/rest/v1/trash_items?on_conflict=id`, {
+            method: 'POST',
+            headers: upsertHeaders,
+            body: JSON.stringify(cleanTrash)
+          });
+        }
         if (extraPayload && extraPayload.delete_archive_id) {
           await fetch(
             `${this.sbUrl}/rest/v1/archive_items?id=eq.${encodeURIComponent(extraPayload.delete_archive_id)}`,
@@ -418,6 +457,30 @@ class DealRoomApp {
               headers: this.getSupabaseHeaders()
             }
           );
+        }
+        if (extraPayload && extraPayload.delete_holding_id) {
+          await fetch(
+            `${this.sbUrl}/rest/v1/holdings?id=eq.${encodeURIComponent(extraPayload.delete_holding_id)}`,
+            {
+              method: 'DELETE',
+              headers: this.getSupabaseHeaders()
+            }
+          );
+        }
+        if (extraPayload && extraPayload.delete_trash_id) {
+          await fetch(
+            `${this.sbUrl}/rest/v1/trash_items?id=eq.${encodeURIComponent(extraPayload.delete_trash_id)}`,
+            {
+              method: 'DELETE',
+              headers: this.getSupabaseHeaders()
+            }
+          );
+        }
+        if (extraPayload && extraPayload.empty_trash) {
+          await fetch(`${this.sbUrl}/rest/v1/trash_items?id=not.is.null`, {
+            method: 'DELETE',
+            headers: this.getSupabaseHeaders()
+          });
         }
         return;
       }
@@ -705,6 +768,7 @@ class DealRoomApp {
   render() {
     const root = document.getElementById('appRoot');
     if (!root) return;
+    this.updateTrashCountBadge();
 
     if (!this.currentSeller || this.currentView === 'auth') {
       root.innerHTML = this.renderSellerAuthScreen();
@@ -1086,6 +1150,7 @@ class DealRoomApp {
       return list
         .map((c) => {
           const rf = this.computeRedFlags(c).length;
+          const prodText = Array.isArray(c.products) && c.products.length > 0 ? ` • 📦 ${c.products.join(', ')}` : '';
           return `
             <div class="funnel-hover-item" onclick="window.app.openCompanyRoom('${c.id}')">
               <div>
@@ -1094,12 +1159,19 @@ class DealRoomApp {
                   <span style="font-size: 0.72rem; color: var(--text-muted);">${c.is_private ? '🔒' : '🌐'}</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">
-                  🏛️ ${c.holding_name || 'Bağımsız'} • ${c.brand} • ${this.formatCurrency(c.deal_value)}
+                  🏛️ ${c.holding_name || 'Bağımsız'} • ${c.brand}${prodText} • ${this.formatCurrency(c.deal_value)}
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 6px;">
                 ${rf > 0 ? `<span class="badge badge-redflag">🚩 ${rf}</span>` : ''}
                 <span class="badge badge-ardic">Aç ➔</span>
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  style="padding: 2px 7px; font-size: 0.72rem; color: #DC2626; border-color: #FECACA; background: #FFFFFF;"
+                  onclick="event.stopPropagation(); window.app.deleteCompany('${c.id}')"
+                  title="Çöp Kutusu'na Taşı"
+                >🗑️</button>
               </div>
             </div>
           `;
@@ -1400,9 +1472,32 @@ class DealRoomApp {
             </div>
           </div>
 
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #0D1B3E; margin-bottom: 8px;">
+              📦 2. Hangi Ürün / Çözüm İçin İlişkideyiz? (Birden Fazla Seçilebilir + Yeni Eklenebilir):
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+              ${STANDARD_PRODUCTS_8.map(
+                (prod) => `
+                <label style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 999px; font-size: 0.76rem; font-weight: 600; cursor: pointer;">
+                  <input type="checkbox" name="ctaProductCheckbox" value="${prod}" ${prod === 'Yapra.ai' ? 'checked' : ''} />
+                  <span>${prod}</span>
+                </label>
+              `
+              ).join('')}
+            </div>
+            <input
+              type="text"
+              id="ctaCustomProductInput"
+              class="input-field"
+              style="width: 100%; background: #FFFFFF; font-size: 0.78rem;"
+              placeholder="+ Listede olmayan yeni ürün/kategori varsa yazın (virgülle ayırabilirsiniz)..."
+            />
+          </div>
+
           <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
             <div style="font-size: 0.8rem; font-weight: 700; color: #0D1B3E; margin-bottom: 8px;">
-              👤 2. Contact Person (İletişim Kişisi) Bilgileri:
+              👤 3. Contact Person (İletişim Kişisi) Bilgileri:
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
               <input type="text" id="ctaContactName" class="input-field" placeholder="Ad Soyad" />
@@ -1712,6 +1807,18 @@ class DealRoomApp {
     const brand = document.getElementById('ctaBrandSelect')?.value || 'Yapra.ai';
     const isPrivate = document.getElementById('ctaPrivacySelect')?.value === 'private';
 
+    const checkedProducts = Array.from(document.querySelectorAll('input[name="ctaProductCheckbox"]:checked')).map(
+      (cb) => cb.value
+    );
+    const customProdRaw = (document.getElementById('ctaCustomProductInput')?.value || '').trim();
+    const customProds = customProdRaw
+      ? customProdRaw
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean)
+      : [];
+    const products = Array.from(new Set([...checkedProducts, ...customProds]));
+
     const cpName = (document.getElementById('ctaContactName')?.value || '').trim();
     const cpTitle = (document.getElementById('ctaContactTitle')?.value || '').trim();
     const cpEmail = (document.getElementById('ctaContactEmail')?.value || '').trim();
@@ -1742,6 +1849,7 @@ class DealRoomApp {
       holding_name: holdingName,
       name: companyName,
       brand,
+      products,
       funnel_status: 'Addressables', // KURAL: Yeni girilen müşteri otomatik olarak Addressables'a geçer!
       stage: 1,
       contact_person: {
@@ -1755,6 +1863,10 @@ class DealRoomApp {
       deal_value: 0,
       currency: 'USD',
       expected_invoice_date: '',
+      payment_date: '',
+      delivery_date: '',
+      contract_status: '',
+      deliveries: [],
       summary_note: '',
       manual_red_flags: [],
       buyers: initialBuyers,
@@ -1903,6 +2015,15 @@ class DealRoomApp {
           <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); window.app.openCompanyRoom('${c.id}')">
             Odaya Gir ➔
           </button>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            style="padding: 5px 9px; color: #DC2626; border-color: #FECACA; background: #FFFFFF;"
+            onclick="event.stopPropagation(); window.app.deleteCompany('${c.id}')"
+            title="Bu müşteriyi Çöp Kutusu'na taşı"
+          >
+            🗑️
+          </button>
         </div>
       </div>
     `;
@@ -2015,6 +2136,39 @@ class DealRoomApp {
               ${comp.summary_note || 'Müşteri notu veya kapsam özeti eklemek için "Genel Kartı Düzenle" butonuna tıklayabilirsiniz.'}
             </p>
 
+            <!-- İLİŞKİDE OLDUĞUMUZ ÜRÜNLER & ÇOKLU SEÇİM / YENİ KATEGORİ EKLEME BARI -->
+            <div style="margin-top: 10px; padding: 8px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;">
+              <span style="font-size: 0.76rem; font-weight: 800; color: #0D1B3E; margin-right: 4px;">📦 Satılacak Ürünler:</span>
+              ${Array.from(new Set([...STANDARD_PRODUCTS_8, ...(comp.products || [])]))
+                .map((prod) => {
+                  const isSelected = (comp.products || []).includes(prod);
+                  const safeProd = prod.replace(/'/g, "\\'");
+                  return `
+                    <button
+                      type="button"
+                      onclick="window.app.toggleCompanyProductInline('${comp.id}', '${safeProd}')"
+                      style="padding: 3px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; cursor: pointer; transition: all 0.15s; ${
+                        isSelected
+                          ? 'background: #EFF6FF; color: #0284C7; border: 1.5px solid #16B5EA;'
+                          : 'background: #FFFFFF; color: #64748B; border: 1px dashed #CBD5E1;'
+                      }"
+                      title="Bu ürünü müşteriye eklemek/çıkarmak için tıklayın"
+                    >
+                      ${isSelected ? '✓ ' : '+ '}${prod}
+                    </button>
+                  `;
+                })
+                .join('')}
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                style="padding: 2px 8px; font-size: 0.72rem; border-radius: 999px; background: #FFFFFF;"
+                onclick="window.app.promptAddCustomProductCategory('${comp.id}')"
+              >
+                + Yeni Kategori
+              </button>
+            </div>
+
             ${
               sisterCompanies.length > 0
                 ? `
@@ -2037,15 +2191,28 @@ class DealRoomApp {
             }
           </div>
 
-          <!-- KARTIN ALT TARAFINDA YAN YANA 3 METRİK KUTUSU (SS1) -->
-          <div class="general-metrics-bar">
+          <!-- KARTIN ALT TARAFINDA YAN YANA METRİK KUTULARI (TEKLİF/SÖZLEŞME, FATURA/ÖDEME, TESLİMAT, RED FLAG) -->
+          <div class="general-metrics-bar" style="grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));">
             <div class="metric-card-mini" style="background: #FFFFFF;">
-              <label>Teklif / Fırsat Hacmi</label>
+              <label>Teklif &amp; Sözleşme Durumu</label>
               <strong>${this.formatCurrency(comp.deal_value)}</strong>
+              <div style="font-size: 0.72rem; color: #0369A1; font-weight: 700; margin-top: 2px;">
+                ${comp.contract_status ? `📜 ${comp.contract_status}` : '📝 Sözleşme Girilmedi'}
+              </div>
             </div>
             <div class="metric-card-mini" style="background: #FFFFFF;">
-              <label>Hedef Fatura Tarihi</label>
-              <strong>${comp.expected_invoice_date || 'Belirlenmedi'}</strong>
+              <label>📅 Fatura &amp; 💳 Ödeme Günü</label>
+              <strong style="font-size: 0.88rem;">Fatura: ${comp.expected_invoice_date || 'Belirlenmedi'}</strong>
+              <div style="font-size: 0.73rem; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">
+                💳 Ödeme: ${comp.payment_date || 'Belirlenmedi'}
+              </div>
+            </div>
+            <div class="metric-card-mini" style="background: #FFFFFF; cursor: pointer;" onclick="window.app.setExpandedRoomWidget('deliveries')" title="Proje Teslimatlarını Yönetmek İçin Tıklayın">
+              <label>🚀 Proje Teslimat Takibi</label>
+              <strong style="font-size: 0.88rem;">${comp.delivery_date || 'Planlanmadı'}</strong>
+              <div style="font-size: 0.72rem; color: #0284C7; font-weight: 700; margin-top: 2px;">
+                📦 ${(comp.deliveries || []).length} Teslimat / Milestone ➔
+              </div>
             </div>
             <div class="metric-card-mini" style="background: #FFFFFF;">
               <label>Red Flag &amp; Eksik</label>
@@ -2457,6 +2624,118 @@ class DealRoomApp {
       }
     `;
 
+    // 6) TESLİMATLAR, FATURA KESİMİ & ÖDEME TAKİBİ İÇERİĞİ
+    const deliveries = comp.deliveries || [];
+    const renderDeliveriesHtml = (showForm = true) => `
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px; padding: 10px; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 10px;">
+        <div>
+          <label style="font-size: 0.72rem; color: #0369A1; font-weight: 700; display: block;">📜 Sözleşme Durumu</label>
+          <select
+            class="select-field"
+            style="width: 100%; background: #FFFFFF; font-size: 0.78rem; padding: 4px 8px; margin-top: 2px;"
+            onchange="window.app.updateCompanyContractAndDatesInline('${comp.id}', 'contract_status', this.value)"
+          >
+            <option value="" ${!comp.contract_status ? 'selected' : ''}>Henüz Yok</option>
+            <option value="Sözleşme Draft" ${comp.contract_status === 'Sözleşme Draft' ? 'selected' : ''}>📝 Sözleşme Draft</option>
+            <option value="Final Sözleşme" ${comp.contract_status === 'Final Sözleşme' ? 'selected' : ''}>📜 Final Sözleşme</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: #0369A1; font-weight: 700; display: block;">📅 Fatura Kesim Tarihi</label>
+          <input
+            type="date"
+            class="input-field"
+            style="width: 100%; background: #FFFFFF; font-size: 0.78rem; padding: 4px 8px; margin-top: 2px;"
+            value="${comp.expected_invoice_date || ''}"
+            onchange="window.app.updateCompanyContractAndDatesInline('${comp.id}', 'expected_invoice_date', this.value)"
+          />
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: #0369A1; font-weight: 700; display: block;">💳 Ödeme Günü</label>
+          <input
+            type="date"
+            class="input-field"
+            style="width: 100%; background: #FFFFFF; font-size: 0.78rem; padding: 4px 8px; margin-top: 2px;"
+            value="${comp.payment_date || ''}"
+            onchange="window.app.updateCompanyContractAndDatesInline('${comp.id}', 'payment_date', this.value)"
+          />
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: #0369A1; font-weight: 700; display: block;">🚀 Proje Teslimat Tarihi</label>
+          <input
+            type="date"
+            class="input-field"
+            style="width: 100%; background: #FFFFFF; font-size: 0.78rem; padding: 4px 8px; margin-top: 2px;"
+            value="${comp.delivery_date || ''}"
+            onchange="window.app.updateCompanyContractAndDatesInline('${comp.id}', 'delivery_date', this.value)"
+          />
+        </div>
+      </div>
+      ${
+        showForm
+          ? `
+        <form onsubmit="window.app.handleAddDelivery(event, '${comp.id}')" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 6px; margin-bottom: 12px; padding: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; align-items: center;">
+          <input
+            type="text"
+            id="newDeliveryTitle"
+            class="input-field"
+            style="background: #FFFFFF; font-size: 0.8rem;"
+            required
+            placeholder="Proje Teslimatı / Ödeme / Fatura Kalemi *"
+          />
+          <input
+            type="date"
+            id="newDeliveryDate"
+            class="input-field"
+            style="background: #FFFFFF; font-size: 0.8rem;"
+            required
+          />
+          <input
+            type="text"
+            id="newDeliveryAmount"
+            class="input-field"
+            style="background: #FFFFFF; font-size: 0.8rem;"
+            placeholder="Tutar / Not (Örn: $25,000 - 1. Faz)"
+          />
+          <button type="submit" class="btn btn-outline btn-sm" style="background: #FFFFFF; font-weight: 700;">
+            + Ekle
+          </button>
+        </form>
+      `
+          : ''
+      }
+      ${
+        deliveries.length === 0
+          ? `<div style="padding: 14px; text-align: center; color: var(--text-muted); font-size: 0.82rem;">Henüz alt teslimat / ödeme fazı girilmedi.</div>`
+          : deliveries
+              .map(
+                (dlv) => `
+              <div class="action-item ${dlv.completed ? 'done' : ''}" style="background: #FFFFFF; margin-bottom: 6px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1;">
+                  <input
+                    type="checkbox"
+                    ${dlv.completed ? 'checked' : ''}
+                    onchange="window.app.toggleDeliveryItem('${comp.id}', '${dlv.id}')"
+                  />
+                  <span><strong>${dlv.title}</strong> ${dlv.amount ? `<span class="badge badge-yapra" style="background:#FFFFFF;">${dlv.amount}</span>` : ''}</span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="badge badge-neutral" style="background: #FFFFFF;">📅 ${dlv.due_date || '-'}</span>
+                  <button
+                    type="button"
+                    class="btn btn-outline btn-sm"
+                    style="padding: 2px 6px; font-size: 0.7rem; color: #DC2626; background: #FFFFFF;"
+                    onclick="event.stopPropagation(); window.app.deleteDeliveryItem('${comp.id}', '${dlv.id}')"
+                    title="Çöp Kutusu'na Taşı"
+                  >🗑️</button>
+                </div>
+              </div>
+            `
+              )
+              .join('')
+      }
+    `;
+
     // EĞER BİR KUTU EXPAND EDİLDİYSE ARKASI BLUR OLAN VE EKRANDA SABİT KALAN MODAL
     let expandedRoomModalHtml = '';
     if (this.expandedRoomWidget) {
@@ -2494,6 +2773,9 @@ class DealRoomApp {
       } else if (this.expandedRoomWidget === 'competitors') {
         mTitle = `⚔️ Rakipler & Rekabet Analizi (${competitors.length})`;
         mBody = renderCompetitorsHtml(true);
+      } else if (this.expandedRoomWidget === 'deliveries') {
+        mTitle = `📦 Sözleşme, Fatura Kesimi, Ödeme Günü & Proje Teslimatları (${deliveries.length})`;
+        mBody = renderDeliveriesHtml(true);
       }
 
       expandedRoomModalHtml = `
@@ -2672,6 +2954,30 @@ class DealRoomApp {
             </div>
           </div>
         </div>
+
+        <!-- 6. HOVER CARD PILL: TESLİMAT, FATURA & ÖDEME TAKİBİ -->
+        <div class="dash-widget-wrapper" onclick="this.classList.toggle('hover-open')">
+          <button type="button" class="dash-slim-pill-btn">
+            <span>📦 Teslimat, Fatura &amp; Ödeme</span>
+            <span class="funnel-pill-count" style="color: #059669; border-color: #A7F3D0;">${deliveries.length}</span>
+          </button>
+
+          <div class="dash-hover-body" style="width: 440px;" onclick="event.stopPropagation()">
+            <div class="dash-hover-card-top">
+              <strong style="font-size: 0.85rem; color: #0D1B3E;">📦 Sözleşme, Fatura, Ödeme &amp; Teslimat (${deliveries.length})</strong>
+              <button
+                type="button"
+                class="dash-expand-btn"
+                onclick="window.app.setExpandedRoomWidget('deliveries')"
+              >
+                ⤢ Expand (+ Ekle)
+              </button>
+            </div>
+            <div style="max-height: 280px; overflow-y: auto;">
+              ${renderDeliveriesHtml(false)}
+            </div>
+          </div>
+        </div>
       </section>
       ${expandedRoomModalHtml}
     `;
@@ -2700,8 +3006,103 @@ class DealRoomApp {
   async deleteCompetitor(compId, rkId) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
+    const target = (comp.competitors || []).find((r) => r.id === rkId);
+    if (!target) return;
     comp.competitors = (comp.competitors || []).filter((r) => r.id !== rkId);
+    await this.moveToTrash({
+      item_type: 'competitor',
+      item_title: `⚔️ Rakip: ${target.name}`,
+      company_id: comp.id,
+      company_name: comp.name,
+      payload: target
+    });
+    this.render();
+  }
+
+  // ÜRÜNLER, SÖZLEŞME, FATURA, ÖDEME & PROJE TESLİMATI METOTLARI
+  async toggleCompanyProductInline(compId, prodName) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    comp.products = Array.isArray(comp.products) ? comp.products : [comp.brand || 'Yapra.ai'];
+    if (comp.products.includes(prodName)) {
+      comp.products = comp.products.filter((p) => p !== prodName);
+    } else {
+      comp.products.push(prodName);
+    }
     await this.persistDatabase();
+    this.render();
+  }
+
+  async promptAddCustomProductCategory(compId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    const raw = prompt('Eklenecek yeni ürün / kategori adını girin (Örn: Özel Entegrasyon, Eğitim, Lisans):');
+    if (!raw || !raw.trim()) return;
+    const prod = raw.trim();
+    comp.products = Array.isArray(comp.products) ? comp.products : [comp.brand || 'Yapra.ai'];
+    if (!comp.products.includes(prod)) {
+      comp.products.push(prod);
+    }
+    await this.persistDatabase();
+    this.render();
+  }
+
+  async updateCompanyContractAndDatesInline(compId, field, value) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    comp[field] = value || '';
+    if (field === 'contract_status' && value === 'signed' && comp.stage < 9) {
+      comp.stage = 9;
+    } else if (field === 'contract_status' && (value === 'final' || value === 'draft') && comp.stage < 8) {
+      comp.stage = 8;
+    }
+    await this.persistDatabase();
+    this.render();
+  }
+
+  async handleAddDelivery(e, compId) {
+    e.preventDefault();
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    const title = (document.getElementById('newDeliveryTitle')?.value || '').trim();
+    const date = (document.getElementById('newDeliveryDate')?.value || '').trim();
+    const owner = (document.getElementById('newDeliveryOwner')?.value || '').trim();
+    if (!title) return;
+    comp.deliveries = Array.isArray(comp.deliveries) ? comp.deliveries : [];
+    comp.deliveries.unshift({
+      id: 'deliv-' + Date.now(),
+      title,
+      date,
+      owner: owner || (this.currentSeller ? this.currentSeller.name : 'Proje Ekibi'),
+      completed: false
+    });
+    await this.persistDatabase();
+    this.render();
+  }
+
+  async toggleDeliveryItem(compId, delivId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    const d = (comp.deliveries || []).find((x) => x.id === delivId);
+    if (!d) return;
+    d.completed = !d.completed;
+    await this.persistDatabase();
+    this.render();
+  }
+
+  async deleteDeliveryItem(compId, delivId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    const target = (comp.deliveries || []).find((x) => x.id === delivId);
+    if (!target) return;
+    comp.deliveries = (comp.deliveries || []).filter((x) => x.id !== delivId);
+    await this.moveToTrash({
+      item_type: 'delivery',
+      item_title: `📦 Teslimat: ${target.title}`,
+      company_id: comp.id,
+      company_name: comp.name,
+      payload: target
+    });
     this.render();
   }
 
@@ -2752,7 +3153,7 @@ class DealRoomApp {
 
           <div style="display: flex; gap: 6px;">
             <button class="btn btn-outline btn-sm" onclick="window.app.openBuyerModal('${compId}', '${b.id}')">✏️ Bilgileri Düzenle</button>
-            <button class="btn btn-outline btn-sm" onclick="window.app.deleteBuyer('${compId}', '${b.id}')">✕</button>
+            <button class="btn btn-outline btn-sm" style="color: #DC2626; border-color: #FECACA;" title="Çöp Kutusu'na Taşı" onclick="window.app.deleteBuyer('${compId}', '${b.id}')">🗑️ Sil</button>
           </div>
         </div>
 
@@ -2872,7 +3273,8 @@ class DealRoomApp {
     const filtered = allItems.filter((item) => {
       if (this.timelineFilter === 'ALL') return true;
       if (this.timelineFilter === 'proposal_revision') return item.type === 'proposal' || item.type === 'revision';
-      if (this.timelineFilter === 'document_contract') return item.type === 'document' || item.type === 'contract';
+      if (this.timelineFilter === 'document_contract')
+        return item.type === 'document' || item.type === 'contract' || item.type === 'contract_draft';
       return item.type === this.timelineFilter;
     });
 
@@ -3014,6 +3416,53 @@ class DealRoomApp {
     document.getElementById('buyerPhoneInput').value = existing ? existing.phone || '' : '';
     document.getElementById('buyerCustomWinInput').value = existing ? existing.custom_win || '' : '';
 
+    // Bu müşteri ve bağlı olduğu Holding altındaki tanıdığımız tüm kişileri dropdown'a doldur
+    const existingContactSelect = document.getElementById('buyerExistingContactSelect');
+    if (existingContactSelect) {
+      const knownContacts = [];
+      const addContactCandidate = (person, sourceLabel) => {
+        if (!person || !person.name || !person.name.trim()) return;
+        const key = `${person.name.trim().toLowerCase()}|${(person.email || '').trim().toLowerCase()}`;
+        if (knownContacts.some((k) => k.key === key)) return;
+        knownContacts.push({
+          key,
+          name: person.name.trim(),
+          title: person.title || '',
+          email: person.email || '',
+          phone: person.phone || '',
+          sourceLabel
+        });
+      };
+
+      if (comp.contact_person && comp.contact_person.name) {
+        addContactCandidate(comp.contact_person, `${comp.name} — İlk Contact`);
+      }
+      (comp.buyers || []).forEach((b) => addContactCandidate(b, `${comp.name} — Mevcut Alıcı`));
+
+      if (comp.holding_id) {
+        (this.db.companies || [])
+          .filter((other) => other.holding_id === comp.holding_id && other.id !== comp.id)
+          .forEach((sister) => {
+            if (sister.contact_person && sister.contact_person.name) {
+              addContactCandidate(sister.contact_person, `${sister.name} (${comp.holding_name})`);
+            }
+            (sister.buyers || []).forEach((sb) =>
+              addContactCandidate(sb, `${sister.name} (${comp.holding_name})`)
+            );
+          });
+      }
+
+      this.knownBuyerCandidates = knownContacts;
+      existingContactSelect.innerHTML = [
+        `<option value="">-- Yeni Kişi Girin veya Tanıdığımız Kişilerden Seçin (${knownContacts.length} Kayıtlı Kişi) --</option>`,
+        ...knownContacts.map(
+          (c, idx) =>
+            `<option value="${idx}">👤 ${c.name}${c.title ? ` (${c.title})` : ''} — [${c.sourceLabel}]</option>`
+        )
+      ].join('');
+      existingContactSelect.value = '';
+    }
+
     const statusRadios = document.querySelectorAll('input[name="buyerWinStatus"]');
     statusRadios.forEach((r) => {
       r.checked = r.value === (existing ? existing.win_status : 'potential');
@@ -3037,6 +3486,20 @@ class DealRoomApp {
     this.updateModalWinSummary();
 
     this.openDialog('buyerDialog');
+  }
+
+  handlePickExistingContactForBuyer(idxStr) {
+    if (idxStr === '' || idxStr === null || idxStr === undefined) return;
+    const candidate = (this.knownBuyerCandidates || [])[Number(idxStr)];
+    if (!candidate) return;
+    const nameEl = document.getElementById('buyerNameInput');
+    const titleEl = document.getElementById('buyerTitleInput');
+    const emailEl = document.getElementById('buyerEmailInput');
+    const phoneEl = document.getElementById('buyerPhoneInput');
+    if (nameEl) nameEl.value = candidate.name || '';
+    if (titleEl) titleEl.value = candidate.title || '';
+    if (emailEl) emailEl.value = candidate.email || '';
+    if (phoneEl) phoneEl.value = candidate.phone || '';
   }
 
   toggleModalWinDropdown(event) {
@@ -3203,8 +3666,16 @@ class DealRoomApp {
   async deleteBuyer(compId, buyerId) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
+    const target = (comp.buyers || []).find((b) => b.id === buyerId);
+    if (!target) return;
     comp.buyers = (comp.buyers || []).filter((b) => b.id !== buyerId);
-    await this.persistDatabase();
+    await this.moveToTrash({
+      item_type: 'buyer',
+      item_title: `👤 Alıcı: ${target.name} (${target.role || ''})`,
+      company_id: comp.id,
+      company_name: comp.name,
+      payload: target
+    });
     this.render();
   }
 
@@ -3222,8 +3693,19 @@ class DealRoomApp {
   async removeManualRedFlag(compId, index) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp || !comp.manual_red_flags) return;
+    const removedText = comp.manual_red_flags[index];
     comp.manual_red_flags.splice(index, 1);
-    await this.persistDatabase();
+    if (removedText) {
+      await this.moveToTrash({
+        item_type: 'red_flag',
+        item_title: `🚩 Red Flag: ${removedText}`,
+        company_id: comp.id,
+        company_name: comp.name,
+        payload: { text: removedText }
+      });
+    } else {
+      await this.persistDatabase();
+    }
     this.render();
   }
 
@@ -3267,8 +3749,16 @@ class DealRoomApp {
   async deleteAction(compId, actionId) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
+    const target = (comp.actions || []).find((a) => a.id === actionId);
+    if (!target) return;
     comp.actions = (comp.actions || []).filter((a) => a.id !== actionId);
-    await this.persistDatabase();
+    await this.moveToTrash({
+      item_type: 'action',
+      item_title: `⚡ Aksiyon: ${target.title}`,
+      company_id: comp.id,
+      company_name: comp.name,
+      payload: target
+    });
     this.render();
   }
 
@@ -3618,8 +4108,17 @@ class DealRoomApp {
   async deleteTimelineEntry(compId, itemId) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
+    const target = (comp.timeline || []).find((t) => t.id === itemId);
+    if (!target) return;
     comp.timeline = (comp.timeline || []).filter((t) => t.id !== itemId);
-    await this.persistDatabase();
+    const meta = TIMELINE_TYPES[target.type] || { label: 'Kayıt' };
+    await this.moveToTrash({
+      item_type: 'timeline',
+      item_title: `${meta.label}: ${target.title}`,
+      company_id: comp.id,
+      company_name: comp.name,
+      payload: target
+    });
     this.render();
   }
 
@@ -3893,7 +4392,16 @@ class DealRoomApp {
 
     if (type === 'proposal' && comp.stage < 6) comp.stage = 6;
     if (type === 'revision' && comp.stage < 7) comp.stage = 7;
-    if (type === 'contract' && comp.stage < 8) comp.stage = 8;
+    if (type === 'contract_draft') {
+      if (comp.stage < 8) comp.stage = 8;
+      if (!comp.contract_status || comp.contract_status === 'none') comp.contract_status = 'draft';
+    }
+    if (type === 'contract') {
+      if (comp.stage < 8) comp.stage = 8;
+      if (!comp.contract_status || comp.contract_status === 'none' || comp.contract_status === 'draft') {
+        comp.contract_status = 'final';
+      }
+    }
 
     if ((type === 'proposal' || type === 'revision') && amount) {
       const numeric = Number(amount.replace(/[^0-9.]/g, ''));
@@ -3944,6 +4452,25 @@ class DealRoomApp {
     ].join('');
   }
 
+  renderModalProductsCheckboxes(selectedProducts = []) {
+    const container = document.getElementById('compProductsCheckboxContainer');
+    if (!container) return;
+    const allProds = Array.from(new Set([...STANDARD_PRODUCTS_8, ...(selectedProducts || [])]));
+    container.innerHTML = allProds
+      .map((p) => {
+        const isChecked = (selectedProducts || []).includes(p);
+        return `
+          <label style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 0.76rem; font-weight: 700; cursor: pointer; border: 1.5px solid ${
+            isChecked ? '#0284C7' : '#CBD5E1'
+          }; background: ${isChecked ? '#E0F2FE' : '#FFFFFF'}; color: ${isChecked ? '#0369A1' : '#334155'};">
+            <input type="checkbox" name="compProductCheckbox" value="${p}" ${isChecked ? 'checked' : ''} style="accent-color: #0284C7;" />
+            <span>📦 ${p}</span>
+          </label>
+        `;
+      })
+      .join('');
+  }
+
   openNewCompanyModal() {
     this.populateHoldingSelect('');
     document.getElementById('compIdInput').value = '';
@@ -3953,6 +4480,11 @@ class DealRoomApp {
     document.getElementById('compSectorInput').value = '';
     document.getElementById('compDealValueInput').value = '';
     document.getElementById('compInvoiceDateInput').value = '';
+    if (document.getElementById('compContractStatusSelect')) document.getElementById('compContractStatusSelect').value = 'none';
+    if (document.getElementById('compPaymentDateInput')) document.getElementById('compPaymentDateInput').value = '';
+    if (document.getElementById('compDeliveryDateInput')) document.getElementById('compDeliveryDateInput').value = '';
+    if (document.getElementById('compCustomProductInput')) document.getElementById('compCustomProductInput').value = '';
+    this.renderModalProductsCheckboxes(['Yapra.ai']);
     document.getElementById('compCityInput').value = 'İstanbul';
     document.getElementById('compSummaryInput').value = '';
     this.openDialog('companyDialog');
@@ -3969,6 +4501,20 @@ class DealRoomApp {
     document.getElementById('compSectorInput').value = comp.sector || '';
     document.getElementById('compDealValueInput').value = comp.deal_value || '';
     document.getElementById('compInvoiceDateInput').value = comp.expected_invoice_date || '';
+    if (document.getElementById('compContractStatusSelect')) {
+      document.getElementById('compContractStatusSelect').value = comp.contract_status || 'none';
+    }
+    if (document.getElementById('compPaymentDateInput')) {
+      document.getElementById('compPaymentDateInput').value = comp.payment_date || '';
+    }
+    if (document.getElementById('compDeliveryDateInput')) {
+      document.getElementById('compDeliveryDateInput').value = comp.delivery_date || '';
+    }
+    if (document.getElementById('compCustomProductInput')) {
+      document.getElementById('compCustomProductInput').value = '';
+    }
+    const prods = Array.isArray(comp.products) && comp.products.length > 0 ? comp.products : [comp.brand || 'Yapra.ai'];
+    this.renderModalProductsCheckboxes(prods);
     document.getElementById('compCityInput').value = comp.city || '';
     document.getElementById('compSummaryInput').value = comp.summary_note || '';
     this.openDialog('companyDialog');
@@ -3985,6 +4531,17 @@ class DealRoomApp {
     const sector = document.getElementById('compSectorInput').value.trim();
     const deal_value = Number(document.getElementById('compDealValueInput').value || 0);
     const expected_invoice_date = document.getElementById('compInvoiceDateInput').value;
+    const contract_status = document.getElementById('compContractStatusSelect')?.value || 'none';
+    const payment_date = document.getElementById('compPaymentDateInput')?.value || '';
+    const delivery_date = document.getElementById('compDeliveryDateInput')?.value || '';
+    const checkedProducts = Array.from(document.querySelectorAll('input[name="compProductCheckbox"]:checked')).map(
+      (cb) => cb.value
+    );
+    const customProd = (document.getElementById('compCustomProductInput')?.value || '').trim();
+    if (customProd && !checkedProducts.includes(customProd)) {
+      checkedProducts.push(customProd);
+    }
+    const products = checkedProducts.length > 0 ? checkedProducts : [brand];
     const city = document.getElementById('compCityInput').value.trim();
     const summary_note = document.getElementById('compSummaryInput').value.trim();
 
@@ -3996,10 +4553,14 @@ class DealRoomApp {
           holding_name: holdingObj ? holdingObj.name : 'Bağımsız Şirket',
           name,
           brand,
+          products,
           funnel_status,
           sector,
           deal_value,
           expected_invoice_date,
+          payment_date,
+          delivery_date,
+          contract_status,
           city,
           summary_note
         });
@@ -4015,11 +4576,16 @@ class DealRoomApp {
         holding_name: holdingObj ? holdingObj.name : 'Bağımsız Şirket',
         name,
         brand,
+        products,
         funnel_status: 'Addressables',
         stage: 1,
         sector,
         deal_value,
         expected_invoice_date,
+        payment_date,
+        delivery_date,
+        contract_status,
+        deliveries: [],
         city,
         summary_note,
         manual_red_flags: [],
@@ -4066,14 +4632,24 @@ class DealRoomApp {
   async deleteCompany(compId) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
-    if (!confirm(`"${comp.name}" müşteri odasını silmek istediğinize emin misiniz?`)) return;
+    if (!confirm(`"${comp.name}" müşteri odasını Çöp Kutusu'na taşımak istediğinize emin misiniz?`)) return;
+    const backup = JSON.parse(JSON.stringify(comp));
     this.db.companies = (this.db.companies || []).filter((c) => c.id !== compId);
     if (this.activeCompanyId === compId) {
       this.activeCompanyId = null;
       this.currentView = 'funnel';
     }
+    await this.moveToTrash(
+      {
+        item_type: 'company',
+        item_title: `🏢 Müşteri Odası: ${backup.name}`,
+        company_id: backup.id,
+        company_name: backup.name,
+        payload: backup
+      },
+      { delete_company_id: compId }
+    );
     this.render();
-    await this.persistDatabase({ delete_company_id: compId });
   }
 
   interpolateTemplateForCompany(rawText, comp) {
@@ -4806,9 +5382,247 @@ class DealRoomApp {
   }
 
   async deleteArchiveItem(archiveId) {
+    const target = (this.db.archive_items || []).find((a) => a.id === archiveId);
+    if (!target) return;
     this.db.archive_items = (this.db.archive_items || []).filter((a) => a.id !== archiveId);
     this.renderArchiveModalBody();
-    await this.persistDatabase({ delete_archive_id: archiveId });
+    await this.moveToTrash(
+      {
+        item_type: 'archive_item',
+        item_title: `📚 Arşiv: ${target.title}`,
+        company_id: '',
+        company_name: target.brand || 'Kurumsal Arşiv',
+        payload: target
+      },
+      { delete_archive_id: archiveId }
+    );
+  }
+
+  // ============================================================================
+  // 🗑️ ÇÖP KUTUSU (TRASHCAN) & SADECE ADMİN KALICI SİLME YETKİSİ
+  // ============================================================================
+  isAdminUser() {
+    if (!this.currentSeller) return false;
+    if (this.currentSeller.is_admin === true) return true;
+    const email = (this.currentSeller.email || '').toLowerCase();
+    const name = (this.currentSeller.name || '').toLowerCase();
+    return email.includes('hulya') || name.includes('hulya') || name.includes('hülya');
+  }
+
+  updateTrashCountBadge() {
+    const badge = document.getElementById('trashTopCountBadge');
+    if (!badge) return;
+    const count = (this.db.trash_items || []).length;
+    badge.textContent = String(count);
+  }
+
+  async moveToTrash(itemMeta, extraPersist = {}) {
+    this.db.trash_items = Array.isArray(this.db.trash_items) ? this.db.trash_items : [];
+    const trashEntry = {
+      id: 'trash-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      item_type: itemMeta.item_type || 'record',
+      item_title: itemMeta.item_title || 'Silinen Kayıt',
+      company_id: itemMeta.company_id || '',
+      company_name: itemMeta.company_name || '',
+      deleted_by_name: this.currentSeller ? this.currentSeller.name : 'Satıcı',
+      deleted_by_email: this.currentSeller ? this.currentSeller.email : '',
+      deleted_at: new Date().toLocaleString('tr-TR').slice(0, 16),
+      payload: itemMeta.payload || {}
+    };
+    this.db.trash_items.unshift(trashEntry);
+    this.updateTrashCountBadge();
+    this.showToast(`🗑️ "${trashEntry.item_title}" Çöp Kutusu'na taşındı.`);
+    await this.persistDatabase(extraPersist);
+  }
+
+  openTrashModal() {
+    this.renderTrashModalBody();
+    this.openDialog('trashDialog');
+  }
+
+  renderTrashModalBody() {
+    const bodyEl = document.getElementById('trashDialogBody');
+    if (!bodyEl) return;
+    const items = this.db.trash_items || [];
+    const isAdmin = this.isAdminUser();
+
+    const typeLabels = {
+      company: '🏢 Müşteri Odası',
+      buyer: '👤 Alıcı & Win',
+      action: '⚡ Aksiyon',
+      timeline: '📂 Timeline / Email / Teklif',
+      competitor: '⚔️ Rakip',
+      red_flag: '🚩 Red Flag',
+      delivery: '📦 Teslimat',
+      archive_item: '📚 Kurumsal Arşiv'
+    };
+
+    bodyEl.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; background: ${
+        isAdmin ? '#FEF2F2' : '#F8FAFC'
+      }; border: 1px solid ${isAdmin ? '#FECACA' : '#E2E8F0'};">
+        <div>
+          <div style="font-size: 0.86rem; font-weight: 800; color: #0D1B3E;">
+            ${
+              isAdmin
+                ? `👑 Admin Yetkisi Aktif (${this.currentSeller?.name || 'Hulya Kahveci'}) — Kayıtları geri yükleyebilir veya Çöp Kutusu'ndan kalıcı olarak silebilirsiniz.`
+                : `🔒 Standart Satıcı Görünümü (${this.currentSeller?.name || ''}) — Silinen kayıtları geri yükleyebilirsiniz. Kalıcı silme yetkisi yalnızca Admin'dedir.`
+            }
+          </div>
+          <div style="font-size: 0.76rem; color: #64748B; margin-top: 2px;">
+            Silinen hiçbir veri doğrudan kaybolmaz; önce buraya gelir. Toplam <strong>${items.length}</strong> kayıt Çöp Kutusu'nda bekliyor.
+          </div>
+        </div>
+        ${
+          isAdmin && items.length > 0
+            ? `<button
+                type="button"
+                class="btn btn-outline btn-sm"
+                style="background: #DC2626; color: #FFFFFF; border-color: #DC2626; font-weight: 800;"
+                onclick="window.app.emptyTrashcan()"
+              >
+                🔥 Çöp Kutusunu Boşalt (Admin)
+              </button>`
+            : ''
+        }
+      </div>
+
+      ${
+        items.length === 0
+          ? `<div style="padding: 40px 20px; text-align: center; color: #94A3B8; font-size: 0.9rem; border: 1px dashed #CBD5E1; border-radius: 12px; background: #FFFFFF;">
+              🗑️ Çöp Kutusu şu anda boş.
+            </div>`
+          : `<div style="display: flex; flex-direction: column; gap: 10px;">
+              ${items
+                .map((item) => {
+                  const badgeText = typeLabels[item.item_type] || '📄 Kayıt';
+                  return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; flex-wrap: wrap;">
+                      <div style="flex: 1; min-width: 240px;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                          <span class="badge badge-neutral">${badgeText}</span>
+                          <strong style="font-size: 0.92rem; color: #0D1B3E;">${item.item_title}</strong>
+                          ${
+                            item.company_name
+                              ? `<span style="font-size: 0.76rem; color: #0369A1; font-weight: 700;">(${item.company_name})</span>`
+                              : ''
+                          }
+                        </div>
+                        <div style="font-size: 0.75rem; color: #64748B; margin-top: 4px;">
+                          Silen: <strong>${item.deleted_by_name || 'Satıcı'}</strong> • Tarih: ${item.deleted_at || '-'}
+                        </div>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <button
+                          type="button"
+                          class="btn btn-outline btn-sm"
+                          style="background: #ECFDF5; color: #047857; border-color: #6EE7B7; font-weight: 700;"
+                          onclick="window.app.restoreTrashItem('${item.id}')"
+                        >
+                          ↩️ Geri Yükle
+                        </button>
+                        ${
+                          isAdmin
+                            ? `<button
+                                type="button"
+                                class="btn btn-outline btn-sm"
+                                style="background: #FEF2F2; color: #DC2626; border-color: #FECACA; font-weight: 700;"
+                                onclick="window.app.permanentlyDeleteTrashItem('${item.id}')"
+                              >
+                                ❌ Kalıcı Sil
+                              </button>`
+                            : `<span style="font-size: 0.72rem; color: #94A3B8; padding: 4px 8px; border: 1px dashed #E2E8F0; border-radius: 6px;" title="Kalıcı silme yetkisi sadece Admin'dedir">🔒 Sadece Admin Silebilir</span>`
+                        }
+                      </div>
+                    </div>
+                  `;
+                })
+                .join('')}
+            </div>`
+      }
+    `;
+  }
+
+  async restoreTrashItem(trashId) {
+    const item = (this.db.trash_items || []).find((t) => t.id === trashId);
+    if (!item) return;
+    const p = item.payload || {};
+
+    if (item.item_type === 'company' && p.id) {
+      this.db.companies = this.db.companies || [];
+      if (!this.db.companies.some((c) => c.id === p.id)) {
+        this.db.companies.unshift(p);
+      }
+    } else if (item.item_type === 'archive_item' && p.id) {
+      this.db.archive_items = this.db.archive_items || [];
+      if (!this.db.archive_items.some((a) => a.id === p.id)) {
+        this.db.archive_items.unshift(p);
+      }
+    } else {
+      const comp = (this.db.companies || []).find((c) => c.id === item.company_id);
+      if (!comp) {
+        alert(`Bu kaydın bağlı olduğu "${item.company_name || 'Müşteri'}" odası bulunamadı. Önce müşteri odasını geri yükleyin.`);
+        return;
+      }
+      if (item.item_type === 'buyer') {
+        comp.buyers = comp.buyers || [];
+        comp.buyers.push(p);
+      } else if (item.item_type === 'action') {
+        comp.actions = comp.actions || [];
+        comp.actions.unshift(p);
+      } else if (item.item_type === 'timeline') {
+        comp.timeline = comp.timeline || [];
+        comp.timeline.unshift(p);
+      } else if (item.item_type === 'competitor') {
+        comp.competitors = comp.competitors || [];
+        comp.competitors.unshift(p);
+      } else if (item.item_type === 'delivery') {
+        comp.deliveries = comp.deliveries || [];
+        comp.deliveries.unshift(p);
+      } else if (item.item_type === 'red_flag' && p.text) {
+        comp.manual_red_flags = comp.manual_red_flags || [];
+        comp.manual_red_flags.push(p.text);
+      }
+    }
+
+    this.db.trash_items = (this.db.trash_items || []).filter((t) => t.id !== trashId);
+    this.updateTrashCountBadge();
+    this.renderTrashModalBody();
+    this.showToast(`↩️ "${item.item_title}" başarıyla geri yüklendi!`);
+    await this.persistDatabase({ delete_trash_id: trashId });
+    this.render();
+  }
+
+  async permanentlyDeleteTrashItem(trashId) {
+    if (!this.isAdminUser()) {
+      alert('Kalıcı silme işlemi yalnızca Admin yetkisine sahip kullanıcılar tarafından yapılabilir.');
+      return;
+    }
+    const item = (this.db.trash_items || []).find((t) => t.id === trashId);
+    if (!item) return;
+    if (!confirm(`"${item.item_title}" kaydını Çöp Kutusu'ndan KALICI OLARAK silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) {
+      return;
+    }
+    this.db.trash_items = (this.db.trash_items || []).filter((t) => t.id !== trashId);
+    this.updateTrashCountBadge();
+    this.renderTrashModalBody();
+    await this.persistDatabase({ delete_trash_id: trashId });
+    this.render();
+  }
+
+  async emptyTrashcan() {
+    if (!this.isAdminUser()) {
+      alert('Çöp Kutusunu boşaltma işlemi yalnızca Admin yetkisine sahip kullanıcılar tarafından yapılabilir.');
+      return;
+    }
+    if (!confirm('Çöp Kutusu içindeki TÜM kayıtları kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
+      return;
+    }
+    this.db.trash_items = [];
+    this.updateTrashCountBadge();
+    this.renderTrashModalBody();
+    await this.persistDatabase({ empty_trash: true });
+    this.render();
   }
 
   copyArchiveItemText(archiveId) {

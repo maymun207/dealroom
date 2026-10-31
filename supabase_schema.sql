@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.sellers (
   email TEXT UNIQUE NOT NULL,
   role TEXT DEFAULT 'Satış Yöneticisi',
   brand_focus TEXT DEFAULT 'Her İkisi',
+  is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS public.companies (
   holding_name TEXT DEFAULT '',
   name TEXT NOT NULL,
   brand TEXT NOT NULL DEFAULT 'Yapra.ai',
+  products JSONB DEFAULT '[]'::jsonb,
   funnel_status TEXT NOT NULL DEFAULT 'Addressables',
   stage INTEGER NOT NULL DEFAULT 1,
   contact_person JSONB DEFAULT '{}'::jsonb,
@@ -44,6 +46,10 @@ CREATE TABLE IF NOT EXISTS public.companies (
   deal_value NUMERIC DEFAULT 0,
   currency TEXT DEFAULT 'USD',
   expected_invoice_date TEXT DEFAULT '',
+  payment_date TEXT DEFAULT '',
+  delivery_date TEXT DEFAULT '',
+  contract_status TEXT DEFAULT '',
+  deliveries JSONB DEFAULT '[]'::jsonb,
   summary_note TEXT DEFAULT '',
   manual_red_flags JSONB DEFAULT '[]'::jsonb,
   competitors JSONB DEFAULT '[]'::jsonb,
@@ -135,6 +141,30 @@ ALTER TABLE public.archive_items ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.archive_items TO anon, authenticated, service_role;
 
 CREATE POLICY "dealroom_archive_items_access" ON public.archive_items
+  FOR ALL TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- 6. TRASH_ITEMS TABLOSU (Çöp Kutusu - Sadece Admin Kalıcı Silebilir)
+CREATE TABLE IF NOT EXISTS public.trash_items (
+  id TEXT PRIMARY KEY,
+  item_type TEXT NOT NULL,
+  item_title TEXT NOT NULL,
+  company_id TEXT DEFAULT '',
+  company_name TEXT DEFAULT '',
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  deleted_by_name TEXT DEFAULT '',
+  deleted_by_email TEXT DEFAULT '',
+  deleted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_trash_items_deleted_at ON public.trash_items(deleted_at DESC);
+
+ALTER TABLE public.trash_items ENABLE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.trash_items TO anon, authenticated, service_role;
+
+CREATE POLICY "dealroom_trash_items_access" ON public.trash_items
   FOR ALL TO anon, authenticated
   USING (true)
   WITH CHECK (true);

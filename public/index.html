@@ -43,6 +43,16 @@
       >
         📚 Kurumsal Arşiv &amp; Şablonlar
       </button>
+      <button
+        type="button"
+        class="btn btn-outline btn-sm"
+        id="openTrashTopBtn"
+        style="background: #FFFFFF; font-weight: 700; border-color: #CBD5E1; color: #0D1B3E;"
+        onclick="window.app.openTrashModal()"
+        title="Silinen Kayıtlar (Çöp Kutusu - Sadece Admin Kalıcı Silebilir)"
+      >
+        🗑️ Çöp Kutusu <span id="trashTopCountBadge" class="funnel-pill-count" style="margin-left: 4px;">0</span>
+      </button>
       <button class="btn btn-outline btn-sm" id="userBadgeBtn" onclick="window.app.handleSignOut()" title="Supabase Oturumunu Kapat">
         👤 <span id="activeUserEmail">Giriş Yapılmadı</span>
       </button>
@@ -89,6 +99,19 @@
       </div>
       <form id="buyerForm" onsubmit="window.app.saveBuyer(event)">
         <input type="hidden" id="buyerIdInput" />
+        <div id="buyerExistingContactBox" style="margin-bottom: 12px; padding: 10px 12px; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px;">
+          <label style="font-size: 0.78rem; font-weight: 700; color: #0369A1; display: block; margin-bottom: 4px;">
+            👥 Müşteride Tanıdığımız Kişilerden / Kontaklardan Hızlı Seç (Yeni Satış İçin Otomatik Doldur)
+          </label>
+          <select
+            id="buyerExistingContactSelect"
+            class="select-field"
+            style="width: 100%; background: #FFFFFF;"
+            onchange="window.app.handlePickExistingContactForBuyer(this.value)"
+          >
+            <option value="">-- Yeni kişi girin veya kayıtlı kontak/alıcı listesinden seçin --</option>
+          </select>
+        </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
           <div>
             <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Ad Soyad *</label>
@@ -236,12 +259,47 @@
             <input type="number" id="compDealValueInput" class="input-field" style="width: 100%;" placeholder="75000" />
           </div>
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Hedef Fatura Tarihi</label>
-            <input type="date" id="compInvoiceDateInput" class="input-field" style="width: 100%;" />
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Sözleşme Durumu (Draft / Final)</label>
+            <select id="compContractStatusSelect" class="select-field" style="width: 100%;">
+              <option value="">Henüz Sözleşme Aşamasında Değil</option>
+              <option value="Sözleşme Draft">📝 Sözleşme Draft (Taslak)</option>
+              <option value="Final Sözleşme">📜 Final Sözleşme (İmzalandı)</option>
+            </select>
           </div>
           <div>
             <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Şehir / Lokasyon</label>
             <input type="text" id="compCityInput" class="input-field" style="width: 100%;" placeholder="İstanbul / Kocaeli" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">📅 Fatura Kesim Tarihi</label>
+            <input type="date" id="compInvoiceDateInput" class="input-field" style="width: 100%;" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">💳 Ödeme Günü</label>
+            <input type="date" id="compPaymentDateInput" class="input-field" style="width: 100%;" />
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">🚀 Proje Teslimat Tarihi</label>
+            <input type="date" id="compDeliveryDateInput" class="input-field" style="width: 100%;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px; padding: 10px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: #0D1B3E; display: block; margin-bottom: 6px;">
+            📦 İlişkide Olduğumuz / Satılacak Ürünler (Birden Fazla Seçilebilir + Yeni Kategori Eklenebilir)
+          </label>
+          <div id="compProductsCheckboxContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;"></div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input
+              type="text"
+              id="compCustomProductInput"
+              class="input-field"
+              style="flex: 1; background: #FFFFFF; font-size: 0.8rem;"
+              placeholder="+ Yeni ürün kategorisi yazın (virgülle birden fazla ekleyebilirsiniz)..."
+            />
           </div>
         </div>
 
@@ -302,7 +360,8 @@
               <option value="email">📩 Email / Yazışma</option>
               <option value="proposal">💰 İlk Teklif</option>
               <option value="revision">🔄 Revize Teklif / Revizyon</option>
-              <option value="contract">✍️ Sözleşme / Hukuk</option>
+              <option value="contract_draft">📝 Sözleşme Draft (Taslak)</option>
+              <option value="contract">📜 Final Sözleşme / Hukuk</option>
               <option value="document">📄 Teknik Doküman / Sunum</option>
             </select>
           </div>
@@ -390,6 +449,24 @@
         <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('archiveDialog')">✕</button>
       </div>
       <div id="archiveDialogBody"></div>
+    </div>
+  </dialog>
+
+  <!-- 7. ÇÖP KUTUSU (TRASHCAN) MODALI (GERİ YÜKLEME + SADECE ADMİN KALICI SİLME) -->
+  <dialog id="trashDialog" closedby="any" aria-labelledby="trashDialogTitle" style="max-width: 900px; width: 95vw;">
+    <div class="dialog-inner" style="max-width: 900px;">
+      <div class="dialog-header">
+        <div>
+          <h3 id="trashDialogTitle" style="font-size: 1.15rem; color: #0D1B3E;">
+            🗑️ Çöp Kutusu (Trashcan) — Silinen Kayıtlar
+          </h3>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+            Silinen hiçbir veri kaybolmaz, burada birikir. Tüm kullanıcılar geri yükleyebilir; <strong>kalıcı silme işlemini yalnızca Admin yapabilir.</strong>
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('trashDialog')">✕</button>
+      </div>
+      <div id="trashDialogBody"></div>
     </div>
   </dialog>
 

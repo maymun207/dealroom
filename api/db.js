@@ -35,23 +35,26 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const headers = getHeaders(supabaseKey);
-      const [sellersRes, holdingsRes, companiesRes, archiveRes] = await Promise.all([
+      const [sellersRes, holdingsRes, companiesRes, archiveRes, trashRes] = await Promise.all([
         fetch(`${supabaseUrl}/rest/v1/sellers?select=*&order=created_at.asc`, { headers }),
         fetch(`${supabaseUrl}/rest/v1/holdings?select=*&order=created_at.asc`, { headers }),
         fetch(`${supabaseUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers }),
-        fetch(`${supabaseUrl}/rest/v1/archive_items?select=*&order=created_at.asc`, { headers })
+        fetch(`${supabaseUrl}/rest/v1/archive_items?select=*&order=created_at.asc`, { headers }),
+        fetch(`${supabaseUrl}/rest/v1/trash_items?select=*&order=deleted_at.desc`, { headers })
       ]);
-      const [sellers, holdings, companies, archive_items] = await Promise.all([
+      const [sellers, holdings, companies, archive_items, trash_items] = await Promise.all([
         sellersRes.json(),
         holdingsRes.json(),
         companiesRes.json(),
-        archiveRes.ok ? archiveRes.json() : []
+        archiveRes.ok ? archiveRes.json() : [],
+        trashRes.ok ? trashRes.json() : []
       ]);
       return res.status(200).json({
         sellers: Array.isArray(sellers) ? sellers : [],
         holdings: Array.isArray(holdings) ? holdings : [],
         companies: Array.isArray(companies) ? companies : [],
-        archive_items: Array.isArray(archive_items) ? archive_items : []
+        archive_items: Array.isArray(archive_items) ? archive_items : [],
+        trash_items: Array.isArray(trash_items) ? trash_items : []
       });
     }
 
@@ -86,6 +89,7 @@ module.exports = async (req, res) => {
           holding_name: c.holding_name || '',
           name: c.name || '',
           brand: c.brand || 'Yapra.ai',
+          products: Array.isArray(c.products) ? c.products : [],
           funnel_status: c.funnel_status || 'Addressables',
           stage: Number(c.stage || 1),
           contact_person: c.contact_person || {},
@@ -96,6 +100,10 @@ module.exports = async (req, res) => {
           deal_value: Number(c.deal_value || 0),
           currency: c.currency || 'USD',
           expected_invoice_date: c.expected_invoice_date || '',
+          payment_date: c.payment_date || '',
+          delivery_date: c.delivery_date || '',
+          contract_status: c.contract_status || '',
+          deliveries: Array.isArray(c.deliveries) ? c.deliveries : [],
           summary_note: c.summary_note || '',
           manual_red_flags: Array.isArray(c.manual_red_flags) ? c.manual_red_flags : [],
           competitors: Array.isArray(c.competitors) ? c.competitors : [],
@@ -132,6 +140,24 @@ module.exports = async (req, res) => {
           body: JSON.stringify(cleanArchive)
         });
       }
+      if (body && Array.isArray(body.trash_items) && body.trash_items.length > 0) {
+        const cleanTrash = body.trash_items.map((t) => ({
+          id: t.id,
+          item_type: t.item_type || 'item',
+          item_title: t.item_title || '',
+          company_id: t.company_id || '',
+          company_name: t.company_name || '',
+          payload: t.payload || {},
+          deleted_by_name: t.deleted_by_name || '',
+          deleted_by_email: t.deleted_by_email || '',
+          deleted_at: t.deleted_at || new Date().toISOString()
+        }));
+        await fetch(`${supabaseUrl}/rest/v1/trash_items?on_conflict=id`, {
+          method: 'POST',
+          headers: upsertHeaders,
+          body: JSON.stringify(cleanTrash)
+        });
+      }
       if (body && body.delete_archive_id) {
         await fetch(`${supabaseUrl}/rest/v1/archive_items?id=eq.${encodeURIComponent(body.delete_archive_id)}`, {
           method: 'DELETE',
@@ -140,6 +166,24 @@ module.exports = async (req, res) => {
       }
       if (body && body.delete_company_id) {
         await fetch(`${supabaseUrl}/rest/v1/companies?id=eq.${encodeURIComponent(body.delete_company_id)}`, {
+          method: 'DELETE',
+          headers: getHeaders(supabaseKey)
+        });
+      }
+      if (body && body.delete_holding_id) {
+        await fetch(`${supabaseUrl}/rest/v1/holdings?id=eq.${encodeURIComponent(body.delete_holding_id)}`, {
+          method: 'DELETE',
+          headers: getHeaders(supabaseKey)
+        });
+      }
+      if (body && body.delete_trash_id) {
+        await fetch(`${supabaseUrl}/rest/v1/trash_items?id=eq.${encodeURIComponent(body.delete_trash_id)}`, {
+          method: 'DELETE',
+          headers: getHeaders(supabaseKey)
+        });
+      }
+      if (body && body.empty_trash) {
+        await fetch(`${supabaseUrl}/rest/v1/trash_items?id=not.is.null`, {
           method: 'DELETE',
           headers: getHeaders(supabaseKey)
         });
