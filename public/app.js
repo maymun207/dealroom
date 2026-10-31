@@ -2269,14 +2269,28 @@ class DealRoomApp {
             })
             .join('');
 
+    const statusBannerHtml = this.uploadStatusMessage
+      ? `<div style="margin-bottom: 12px; padding: 12px 16px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between; gap: 10px; ${
+          this.uploadStatusType === 'error'
+            ? 'background: #FFFBEB; border: 1.5px solid #F59E0B; color: #92400E;'
+            : this.uploadStatusType === 'loading'
+            ? 'background: #EFF6FF; border: 1.5px solid #3B82F6; color: #1E40AF;'
+            : 'background: #ECFDF5; border: 1.5px solid #10B981; color: #065F46;'
+        }">
+          <span>${this.uploadStatusMessage}</span>
+          <button type="button" class="btn btn-outline btn-sm" style="background: #FFFFFF; padding: 2px 8px; font-size: 0.74rem;" onclick="window.app.uploadStatusMessage = null; window.app.render();">Tamam</button>
+        </div>`
+      : '';
+
     const fullTimelineHtml = `
+      ${statusBannerHtml}
       <div class="dropzone-box" id="roomDropzone" style="background: #FFFFFF;" onclick="window.app.openTimelineModal('${comp.id}')">
         <div style="font-size: 1.3rem; margin-bottom: 4px;">📥</div>
         <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);">
-          Teklif PDF, Revizyon, Sözleşme, Doküman veya Email Dosyasını Buraya Sürükleyip Bırakın
+          Teklif PDF, Revizyon, Sözleşme, Doküman veya Masaüstündeki Email (.eml) Dosyalarını Buraya Sürükleyip Bırakın (Çoklu Dosya Destekler)
         </div>
         <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">
-          veya tıklayarak Email / Toplantı Notu ekleyin
+          Dosyaları bıraktığınız anda <strong>otomatik yüklenir ve kaydedilir</strong> — veya tıklayarak Email metnini yapıştırıp ek dosya seçin
         </div>
       </div>
 
@@ -3163,21 +3177,23 @@ class DealRoomApp {
         if (quickDz) quickDz.classList.remove('dragover');
       });
 
-      el.addEventListener('drop', (e) => {
+      el.addEventListener('drop', async (e) => {
         e.preventDefault();
         e.stopPropagation();
         el.classList.remove('dragover');
         const quickDz = document.getElementById('roomQuickDropzone');
         if (quickDz) quickDz.classList.remove('dragover');
+
         const files = e.dataTransfer?.files;
-        if (files && files.length > 0) {
-          this.pendingDroppedFile = files[0];
-          if (isInsideModal) {
+        if (isInsideModal) {
+          if (files && files.length > 0) {
+            this.pendingDroppedFile = files[0];
             this.applyDroppedFileToOpenTimelineModal(files[0]);
-          } else {
-            this.openTimelineModal(this.activeCompanyId || compId, files[0]);
           }
+          return;
         }
+
+        await this.handleInstantDropOnCustomerRoom(this.activeCompanyId || compId, e.dataTransfer);
       });
     };
 
@@ -3185,6 +3201,168 @@ class DealRoomApp {
     attachDropHandlers(document.getElementById('roomDropzone'), false);
     attachDropHandlers(document.getElementById('timelineModalDropzone'), true);
     attachDropHandlers(document.getElementById('appRoot'), false);
+  }
+
+  async uploadSingleFileToCloud(compId, fileObj) {
+    let uploadedUrl = '';
+    const fileName = fileObj.name;
+    const fileSize = Math.round(fileObj.size / 1024) + ' KB';
+    const safeName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const objectPath = `${compId}/${safeName}`;
+    const bucket = this.sbBucket || 'deal-documents';
+
+    if (this.sbUrl && this.sbKey) {
+      try {
+        const sbUpRes = await fetch(`${this.sbUrl}/storage/v1/object/${bucket}/${objectPath}`, {
+          method: 'POST',
+          headers: {
+            apikey: this.sbKey,
+            Authorization: `Bearer ${this.accessToken || this.sbKey}`,
+            'Content-Type': fileObj.type || 'application/octet-stream',
+            'x-upsert': 'true'
+          },
+          body: fileObj
+        });
+        if (sbUpRes.ok) {
+          uploadedUrl = `${this.sbUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
+        }
+      } catch (sbStorageErr) {
+        console.warn('Supabase Storage doğrudan yükleme uyarısı:', sbStorageErr);
+      }
+    }
+
+    if (!uploadedUrl) {
+      try {
+        const base64Data = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(fileObj);
+        });
+        const upRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName,
+            base64Data,
+            contentType: fileObj.type || 'application/octet-stream',
+            companyId: compId
+          })
+        });
+        const upJson = await upRes.json();
+        if (upJson.url) uploadedUrl = upJson.url;
+      } catch (err) {
+        console.warn('Dosya yükleme uyarısı:', err);
+      }
+    }
+
+    return { uploadedUrl, fileName, fileSize };
+  }
+
+  async handleInstantDropOnCustomerRoom(compId, dataTransfer) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp || !dataTransfer) return;
+
+    const files = dataTransfer.files ? Array.from(dataTransfer.files) : [];
+
+    // DURUM 1: 1 veya birden fazla gerçek dosya (.pdf, .docx, .xlsx, .eml, .txt vb.) sürüklendiyse ANINDA HEPSİNİ YÜKLE VE KAYDET!
+    if (files.length > 0) {
+      this.uploadStatusType = 'loading';
+      this.uploadStatusMessage = `⏳ ${files.length} dosya algılandı (${files.map((f) => f.name).join(', ')}), buluta yükleniyor ve kaydediliyor...`;
+      this.render();
+
+      const savedNames = [];
+      for (const fileObj of files) {
+        const fName = fileObj.name;
+        const lower = fName.toLowerCase();
+        let type = 'document';
+        if (lower.includes('revize')) type = 'revision';
+        else if (lower.includes('teklif') || lower.includes('proposal') || lower.includes('fiyat')) type = 'proposal';
+        else if (lower.includes('sozlesme') || lower.includes('sözleşme') || lower.includes('nda')) type = 'contract';
+        else if (lower.endsWith('.eml') || lower.endsWith('.msg')) type = 'email';
+
+        let title = fName.replace(/\.[^/.]+$/, '');
+        let content = `Sürükle-bırak ile yüklendi: ${fName}`;
+
+        if (lower.endsWith('.eml') || lower.endsWith('.txt')) {
+          try {
+            const rawText = await fileObj.text();
+            if (lower.endsWith('.eml')) {
+              const subjMatch = rawText.match(/^Subject:\s*(.+)$/im);
+              if (subjMatch) title = subjMatch[1].trim();
+              const parts = rawText.split(/\r?\n\r?\n/);
+              const bodyText = parts.slice(1).join('\n\n').trim();
+              if (bodyText) content = bodyText.slice(0, 4000);
+            } else if (rawText.trim()) {
+              content = rawText.trim().slice(0, 4000);
+            }
+          } catch (readErr) {
+            console.warn('Text/EML okuma uyarısı:', readErr);
+          }
+        }
+
+        const { uploadedUrl, fileName, fileSize } = await this.uploadSingleFileToCloud(comp.id, fileObj);
+
+        comp.timeline = comp.timeline || [];
+        comp.timeline.unshift({
+          id: 't-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          type,
+          title,
+          content,
+          amount: '',
+          file_name: fileName,
+          file_size: fileSize,
+          file_url: uploadedUrl,
+          author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
+          created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
+        });
+        savedNames.push(title);
+      }
+
+      this.autoEvaluateCompanyFunnel(comp);
+      await this.persistDatabase();
+      this.uploadStatusType = 'success';
+      this.uploadStatusMessage = `✅ ${savedNames.length} kayıt (${savedNames.join(', ')}) başarıyla "${comp.name}" odasına yüklendi ve kaydedildi!`;
+      this.render();
+      return;
+    }
+
+    // DURUM 2: Dosya değil ama seçili e-posta metni sürüklendiyse
+    const droppedPlain = (dataTransfer.getData('text/plain') || '').trim();
+    const droppedUri = (dataTransfer.getData('text/uri-list') || '').trim();
+
+    if (droppedPlain && !droppedPlain.startsWith('message:')) {
+      const firstLine = droppedPlain.split(/\r?\n/)[0].slice(0, 75) || 'Sürüklenen E-posta / Not';
+      comp.timeline = comp.timeline || [];
+      comp.timeline.unshift({
+        id: 't-' + Date.now(),
+        type: 'email',
+        title: `📩 ${firstLine}`,
+        content: droppedPlain,
+        amount: '',
+        file_name: '',
+        file_size: '',
+        file_url: '',
+        author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
+        created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
+      });
+      this.autoEvaluateCompanyFunnel(comp);
+      await this.persistDatabase();
+      this.uploadStatusType = 'success';
+      this.uploadStatusMessage = `✅ Sürüklenen e-posta metni başarıyla "${comp.name}" odasına kaydedildi!`;
+      this.render();
+      return;
+    }
+
+    // DURUM 3: Apple Mail / Outlook'tan doğrudan liste satırı sürüklendiğinde (Mac OS 'message://' linki gönderir, dosyayı vermez!)
+    this.uploadStatusType = 'error';
+    this.uploadStatusMessage =
+      '⚠️ Apple Mail / Outlook Kısıtı: Mail listesini doğrudan tarayıcıya sürüklediğinizde Mac güvenlik duvarı mail içeriğini tarayıcıya iletmez (Dosya alınmadı). Çözüm: (1) Maili önce Masaüstüne sürükleyip (.eml olur) oradan buraya bırakın VEYA (2) Açılan pencereye mail metnini kopyalayıp (Cmd+C / Cmd+V) yapıştırın ve ekli PDF/Word dosyasını sürükleyin.';
+    this.render();
+    this.openTimelineModal(comp.id);
+    const titleEl = document.getElementById('tlTitleInput');
+    if (titleEl && droppedUri.startsWith('message:')) {
+      titleEl.placeholder = 'Mail konusunu yazın ve aşağıya mail metnini (Cmd+V) yapıştırın...';
+    }
   }
 
   applyDroppedFileToOpenTimelineModal(droppedFile) {
@@ -3426,6 +3604,8 @@ class DealRoomApp {
     this.autoEvaluateCompanyFunnel(comp);
 
     this.pendingDroppedFile = null;
+    this.uploadStatusType = 'success';
+    this.uploadStatusMessage = `✅ "${title}" kaydı${fileName ? ` ve "${fileName}" dosyası` : ''} başarıyla "${comp.name}" odasına kaydedildi!`;
     this.closeDialog('timelineDialog');
     await this.persistDatabase();
     this.render();
