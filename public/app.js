@@ -49,9 +49,163 @@ const TIMELINE_TYPES = {
   document: { label: '📄 Doküman', badge: 'badge-neutral' }
 };
 
+const ARCHIVE_CATEGORIES = {
+  presentation: { label: '📊 Sunumlar', badge: 'badge-yapra', tlType: 'document' },
+  email_template: { label: '✉️ Email Şablonları', badge: 'badge-ardic', tlType: 'email' },
+  document: { label: '📄 Doküman & Sözleşme', badge: 'badge-neutral', tlType: 'document' },
+  price_list: { label: '💰 Fiyat Listeleri', badge: 'badge-warning', tlType: 'proposal' },
+  case_study: { label: '🏆 Case Studies', badge: 'badge-both', tlType: 'document' }
+};
+
+const DEFAULT_ARCHIVE_ITEMS = [
+  {
+    id: 'arc-pres-1',
+    category: 'presentation',
+    brand: 'Yapra.ai',
+    title: 'Yapra.ai Kurumsal AI Dönüşüm & Agentic İş Akışları Sunumu (2026)',
+    subject: 'Yapra.ai — Kurumsal AI Dönüşüm ve Otonom Süreçler Sunumu',
+    content: 'Holdingler ve kurumsal şirketler için Yapra.ai otonom AI ajanları, ERP/CRM entegrasyonu, güvenlik katmanı ve 6 haftalık hızlı PoC yol haritasını içeren ana yönetici sunumu.',
+    file_name: 'Yapra_AI_Executive_Pitch_Deck_2026.pdf',
+    file_size: '4.2 MB',
+    file_url: '',
+    tags: ['Executive Deck', 'AI Agents', 'PoC Yol Haritası'],
+    author_name: 'Pazarlama & Satış Ekibi'
+  },
+  {
+    id: 'arc-pres-2',
+    category: 'presentation',
+    brand: 'ArdicTech',
+    title: 'ArdicTech Endüstriyel IoT, Edge AI & Akıllı Üretim Platformu Sunumu',
+    subject: 'ArdicTech — Endüstriyel IoT ve Üretimde Dijital İkiz Sunumu',
+    content: 'Üretim, enerji ve otomotiv tesislerinde uçtan uca IoT cihaz yönetimi, kestirimci bakım (Predictive Maintenance) ve OEE artışı sağlayan ArdicTech mimari sunumu.',
+    file_name: 'ArdicTech_Industrial_IoT_Platform_Deck.pdf',
+    file_size: '5.8 MB',
+    file_url: '',
+    tags: ['Endüstriyel IoT', 'Kestirimci Bakım', 'OEE'],
+    author_name: 'ArdicTech Çözüm Ekibi'
+  },
+  {
+    id: 'arc-email-1',
+    category: 'email_template',
+    brand: 'Yapra.ai',
+    title: 'İlk Temas (Cold / Warm Intro) — C-Level & Dijital Dönüşüm',
+    subject: '{{musteri_adi}} & Yapra.ai — Kurumsal AI Ajanları ile Süreç Otomasyonu',
+    content: `Merhaba {{yetkili_adi}} Bey/Hanım,\n\n{{musteri_adi}} bünyesinde yürüttüğünüz dijital dönüşüm ve operasyonel verimlilik çalışmalarını yakından takip ediyoruz.\n\nYapra.ai olarak Türkiye'nin önde gelen holding ve sanayi kuruluşlarında; mevcut ERP/CRM sistemlerinize dokunmadan haftalar içinde devreye giren kurumsal AI ajanlarıyla operasyonel iş yükünü %40'a varan oranda azaltıyoruz.\n\nÖnümüzdeki hafta {{musteri_adi}} özelinde hazırladığımız 20 dakikalık kısa kullanım senaryolarını ve canlı demomuzu paylaşmak isteriz. Salı veya Perşembe günü takviminizde uygun bir zaman aralığı var mıdır?\n\nSaygılarımızla,\n{{satici_adi}}\n{{satici_email}}`,
+    file_name: '',
+    file_size: '',
+    file_url: '',
+    tags: ['İlk Temas', 'C-Level', 'Demo Talebi'],
+    author_name: 'Satış Ekibi'
+  },
+  {
+    id: 'arc-email-2',
+    category: 'email_template',
+    brand: 'Her İkisi',
+    title: 'Toplantı Sonrası Özet & Next Steps (Engagement / Demo Sonrası)',
+    subject: '{{musteri_adi}} x {{marka}} — Toplantı Özeti, Sunum ve Sonraki Adımlar',
+    content: `Merhaba {{yetkili_adi}} Bey/Hanım,\n\nBugün {{musteri_adi}} ekibiyle gerçekleştirdiğimiz verimli {{marka}} toplantısı ve değerli katkılarınız için çok teşekkür ederiz.\n\nToplantımızda konuştuğumuz ana başlıklar ve kararlaştırdığımız sonraki adımlar (Next Steps) aşağıda yer almaktadır:\n{{acik_aksiyonlar}}\n\nToplantıda üzerinden geçtiğimiz sunum ve teknik dokümanları da ekte/aşağıdaki bağlantıda bilgilerinize sunarız.\n\nSaygılarımızla,\n{{satici_adi}}\n{{satici_email}}`,
+    file_name: '',
+    file_size: '',
+    file_url: '',
+    tags: ['Toplantı Özeti', 'Next Steps', 'Sunum Paylaşımı'],
+    author_name: 'Satış Ekibi'
+  },
+  {
+    id: 'arc-email-3',
+    category: 'email_template',
+    brand: 'Her İkisi',
+    title: 'Pilot / PoC ve Ticari Teklif Gönderim E-postası',
+    subject: '{{musteri_adi}} — {{marka}} Kapsam & Ticari Teklif Dokümanı',
+    content: `Merhaba {{yetkili_adi}} Bey/Hanım,\n\n{{musteri_adi}} teknik ve iş birimleriyle yaptığımız çalışma sonucunda, hedeflenen başarı kriterlerini (KPI & ROI) ve proje takvimini içeren {{marka}} teklifimizi hazırladık.\n\nTeklif kapsamında:\n- Faz 1: Hızlı Kurulum & Entegrasyon\n- Faz 2: Canlı Veri ile Doğrulama ve Kullanıcı Kabul Testleri\n- Faz 3: Kurumsal Yaygınlaştırma ve SLA Desteği\n\nTeklif dokümanını incelemenizin ardından Cuma günü 15 dakikalık kısa bir değerlendirme görüşmesi yapabiliriz.\n\nSaygılarımızla,\n{{satici_adi}}\n{{satici_email}}`,
+    file_name: '',
+    file_size: '',
+    file_url: '',
+    tags: ['Teklif Gönderimi', 'PoC', 'ROI'],
+    author_name: 'Satış Ekibi'
+  },
+  {
+    id: 'arc-doc-1',
+    category: 'document',
+    brand: 'Her İkisi',
+    title: 'Kurumsal Bilgi Güvenliği, KVKK, ISO 27001 & On-Prem / Private Cloud Mimarisi',
+    subject: '{{marka}} — Kurumsal Güvenlik, KVKK ve Mimari Uyumluluk Dokümanı',
+    content: 'IT Güvenlik (CISO) ve Hukuk ekiplerinin talep ettiği veri izolasyonu, Zero-Data-Retention, On-Premise / VPC kurulum seçenekleri, KVKK/GDPR uyumluluğu ve penetrasyon testi özet raporu.',
+    file_name: 'Security_KVKK_Architecture_Whitepaper_2026.pdf',
+    file_size: '2.1 MB',
+    file_url: '',
+    tags: ['KVKK', 'ISO 27001', 'IT Güvenlik', 'Teknik Alıcı'],
+    author_name: 'CTO Ofisi'
+  },
+  {
+    id: 'arc-doc-2',
+    category: 'document',
+    brand: 'Her İkisi',
+    title: 'Standart Karşılıklı Gizlilik Sözleşmesi (NDA) & PoC Çerçeve Sözleşmesi',
+    subject: '{{musteri_adi}} — Karşılıklı Gizlilik Sözleşmesi (NDA) Taslağı',
+    content: 'Hukuk ve satınalma departmanlarıyla hızlıca imzalanabilecek Türkçe/İngilizce çift dilli standart Karşılıklı Gizlilik Sözleşmesi (MNDA) ve Pilot/PoC protokol taslağı.',
+    file_name: 'Standart_Kurumsal_NDA_ve_PoC_Sozlesmesi.docx',
+    file_size: '640 KB',
+    file_url: '',
+    tags: ['NDA', 'Hukuk', 'Sözleşme Taslağı'],
+    author_name: 'Hukuk Müşavirliği'
+  },
+  {
+    id: 'arc-price-1',
+    category: 'price_list',
+    brand: 'Yapra.ai',
+    title: 'Yapra.ai 2026 Kurumsal Lisans, PoC ve Enterprise Paket Fiyat Listesi',
+    subject: 'Yapra.ai — 2026 Kurumsal Paketler ve Lisanslama Seçenekleri',
+    content: `• Starter / Pilot (PoC) Paketi (6 Hafta): $15,000 (Tek Seferlik — Yıllık lisanstan düşülür)\n• Business AI Agent Paketi (3 Departman / 5 Ajan): $48,000 / Yıl\n• Enterprise Holding Paketi (Sınırsız Ajan + Private VPC / On-Prem + 7/24 SLA): $95,000 / Yıl\n• Holding Çoklu Şirket İndirimi: Aynı holding çatısı altındaki 2. ve 3. şirketlerde %20 grup indirimi uygulanır.`,
+    file_name: 'Yapra_AI_2026_Enterprise_Price_List.pdf',
+    file_size: '1.4 MB',
+    file_url: '',
+    tags: ['Fiyat Listesi', 'USD', 'Holding İndirimi', 'PoC Fiyatı'],
+    author_name: 'Finans & Satış Operasyon'
+  },
+  {
+    id: 'arc-price-2',
+    category: 'price_list',
+    brand: 'ArdicTech',
+    title: 'ArdicTech 2026 Endüstriyel IoT & Edge AI Fabrika Lisanslama Fiyat Listesi',
+    subject: 'ArdicTech — 2026 Fabrika & Hat Bazlı Lisanslama Fiyat Listesi',
+    content: `• Tek Üretim Hattı Pilot Kurulumu (Sensör Entegrasyonu + Dashboard): $20,000\n• Fabrika Tam Kapsam Lisansı (100 Ekipmana Kadar + Kestirimci Bakım AI): $65,000 / Yıl\n• Çoklu Tesis / Holding Endüstri 4.0 Paketi (Sınırsız Tesis + Özel Edge Sunucu): $140,000 / Yıl\n• Yıllık Bakım, OTA Güncelleme ve 7/24 Saha SLA Desteği dahildir.`,
+    file_name: 'ArdicTech_2026_IoT_Pricing_Packages.pdf',
+    file_size: '1.7 MB',
+    file_url: '',
+    tags: ['Fiyat Listesi', 'Fabrika Lisansı', 'IoT', 'SLA'],
+    author_name: 'ArdicTech Ticari Ekip'
+  },
+  {
+    id: 'arc-case-1',
+    category: 'case_study',
+    brand: 'Yapra.ai',
+    title: 'Case Study: Büyük Sanayi Holdinginde Satınalma & Tedarik Zinciri AI Otomasyonu (%42 Zaman Tasarrufu)',
+    subject: 'Yapra.ai Başarı Hikayesi — Tedarik Zinciri ve Satınalma Süreçlerinde %42 Hızlanma',
+    content: `PROBLEM: Yıllık 50.000+ teklif ve sözleşme dokümanının manuel incelenmesi nedeniyle satınalma onay sürelerinin 14 güne uzaması.\n\nÇÖZÜM: Yapra.ai Doküman & SAP Entegrasyon Ajanları ile tedarikçi tekliflerinin otomatik karşılaştırılması, riskli maddelerin (Red Flag) tespiti ve tek tıkla onay özeti.\n\nSONUÇLAR:\n• Süreç tamamlanma süresinde %42 kısalma (14 günden 8 güne düşüş)\n• Yıllık $320,000 operasyonel maliyet tasarrufu\n• 5 haftada canlıya geçiş (Go-Live)`,
+    file_name: 'Case_Study_Yapra_SupplyChain_AI.pdf',
+    file_size: '3.1 MB',
+    file_url: '',
+    tags: ['Case Study', 'ROI %300+', 'Satınalma', 'SAP Entegrasyonu'],
+    author_name: 'Müşteri Başarı Ekibi'
+  },
+  {
+    id: 'arc-case-2',
+    category: 'case_study',
+    brand: 'ArdicTech',
+    title: 'Case Study: Otomotiv & Enerji Üretim Tesisinde Kestirimci Bakım ile Plansız Duruşlarda %37 Azalma',
+    subject: 'ArdicTech Başarı Hikayesi — Üretim Hattında Plansız Duruşların %37 Azaltılması',
+    content: `PROBLEM: Kritik üretim hatlarındaki plansız makine arızaları nedeniyle yıllık $1.2M üretim kaybı.\n\nÇÖZÜM: ArdicTech Edge IoT geçitleri ve gerçek zamanlı titreşim/sıcaklık AI anomali tespiti ile arızaların 72 saat önceden haber verilmesi.\n\nSONUÇLAR:\n• Plansız duruşlarda %37 azalma\n• OEE (Toplam Ekipman Etkinliği) skorunda +9.4 puan artış\n• Yatırımın geri dönüş süresi (Payback Period): 4.5 Ay`,
+    file_name: 'Case_Study_ArdicTech_Predictive_Maintenance.pdf',
+    file_size: '3.6 MB',
+    file_url: '',
+    tags: ['Case Study', 'OEE Artışı', 'Kestirimci Bakım', 'Üretim'],
+    author_name: 'ArdicTech Mühendislik'
+  }
+];
+
 class DealRoomApp {
   constructor() {
-    this.db = { sellers: [], holdings: [], companies: [] };
+    this.db = { sellers: [], holdings: [], companies: [], archive_items: [...DEFAULT_ARCHIVE_ITEMS] };
     this.currentSeller = null; // Satıcı girişi / kaydı
     this.currentView = 'funnel'; // 'auth' | 'funnel' | 'room'
     this.activeFunnelBox = 'Engaged'; // 'Addressables' | 'Contacted' | 'Engaged'
@@ -60,6 +214,14 @@ class DealRoomApp {
     this.brandFilter = 'ALL'; // 'ALL' | 'Yapra.ai' | 'ArdicTech'
     this.activeCompanyId = null;
     this.timelineFilter = 'ALL';
+    this.archiveCategoryFilter = 'ALL';
+    this.archiveBrandFilter = 'ALL';
+    this.archiveSearchQuery = '';
+    this.archiveTargetCompanyId = '';
+    this.showArchiveForm = false;
+    this.editingArchiveId = null;
+    this.selectedTimelineArchiveItem = null;
+    this.draftAttachedArchiveItem = null;
     this.ctaQuery = '';
     this.ctaBelongsToHolding = 'yes'; // 'yes' | 'no'
     this.supabaseClient = null;
@@ -234,21 +396,25 @@ class DealRoomApp {
   async loadDatabase() {
     if (this.sbUrl && this.sbKey) {
       try {
-        const [sellersRes, holdingsRes, companiesRes] = await Promise.all([
+        const [sellersRes, holdingsRes, companiesRes, archiveRes] = await Promise.all([
           fetch(`${this.sbUrl}/rest/v1/sellers?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
           fetch(`${this.sbUrl}/rest/v1/holdings?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
-          fetch(`${this.sbUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() })
+          fetch(`${this.sbUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() }),
+          fetch(`${this.sbUrl}/rest/v1/archive_items?select=*&order=created_at.asc`, { headers: this.getSupabaseHeaders() })
         ]);
         if (sellersRes.ok && holdingsRes.ok && companiesRes.ok) {
-          const [sellers, holdings, companies] = await Promise.all([
+          const [sellers, holdings, companies, archive_items] = await Promise.all([
             sellersRes.json(),
             holdingsRes.json(),
-            companiesRes.json()
+            companiesRes.json(),
+            archiveRes.ok ? archiveRes.json() : []
           ]);
           this.db = {
             sellers: Array.isArray(sellers) ? sellers : [],
             holdings: Array.isArray(holdings) ? holdings : [],
-            companies: Array.isArray(companies) ? companies : []
+            companies: Array.isArray(companies) ? companies : [],
+            archive_items:
+              Array.isArray(archive_items) && archive_items.length > 0 ? archive_items : [...DEFAULT_ARCHIVE_ITEMS]
           };
           return;
         }
@@ -264,7 +430,11 @@ class DealRoomApp {
         this.db = {
           sellers: Array.isArray(data.sellers) ? data.sellers : [],
           holdings: Array.isArray(data.holdings) ? data.holdings : [],
-          companies: Array.isArray(data.companies) ? data.companies : []
+          companies: Array.isArray(data.companies) ? data.companies : [],
+          archive_items:
+            Array.isArray(data.archive_items) && data.archive_items.length > 0
+              ? data.archive_items
+              : [...DEFAULT_ARCHIVE_ITEMS]
         };
       }
     } catch (e) {
@@ -272,7 +442,7 @@ class DealRoomApp {
     }
   }
 
-  async persistDatabase() {
+  async persistDatabase(extraPayload = {}) {
     try {
       if (this.sbUrl && this.sbKey) {
         const upsertHeaders = this.getSupabaseHeaders({
@@ -327,6 +497,37 @@ class DealRoomApp {
             body: JSON.stringify(cleanCompanies)
           });
         }
+        if (Array.isArray(this.db.archive_items) && this.db.archive_items.length > 0) {
+          const cleanArchive = this.db.archive_items.map((a) => ({
+            id: a.id,
+            category: a.category || 'document',
+            brand: a.brand || 'Her İkisi',
+            title: a.title || '',
+            subject: a.subject || '',
+            content: a.content || '',
+            file_name: a.file_name || '',
+            file_size: a.file_size || '',
+            file_url: a.file_url || '',
+            tags: Array.isArray(a.tags) ? a.tags : [],
+            author_name: a.author_name || '',
+            author_email: a.author_email || '',
+            updated_at: new Date().toISOString()
+          }));
+          await fetch(`${this.sbUrl}/rest/v1/archive_items?on_conflict=id`, {
+            method: 'POST',
+            headers: upsertHeaders,
+            body: JSON.stringify(cleanArchive)
+          });
+        }
+        if (extraPayload && extraPayload.delete_archive_id) {
+          await fetch(
+            `${this.sbUrl}/rest/v1/archive_items?id=eq.${encodeURIComponent(extraPayload.delete_archive_id)}`,
+            {
+              method: 'DELETE',
+              headers: this.getSupabaseHeaders()
+            }
+          );
+        }
         return;
       }
 
@@ -334,7 +535,7 @@ class DealRoomApp {
       await fetch('/api/db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.db)
+        body: JSON.stringify({ ...this.db, ...extraPayload })
       });
     } catch (e) {
       console.error('Supabase kayıt hatası:', e);
@@ -545,6 +746,23 @@ class DealRoomApp {
         });
       });
 
+      (this.db.archive_items || []).forEach((arc) => {
+        if (
+          (arc.title || '').toLowerCase().includes(q) ||
+          (arc.content || '').toLowerCase().includes(q) ||
+          (arc.subject || '').toLowerCase().includes(q) ||
+          (arc.tags || []).some((tg) => tg.toLowerCase().includes(q))
+        ) {
+          const catMeta = ARCHIVE_CATEGORIES[arc.category] || { label: '📚 Arşiv' };
+          matches.push({
+            archiveCategory: arc.category,
+            title: `${catMeta.label}: ${arc.title}`,
+            subtitle: `${arc.brand} • Kurumsal Arşiv & Şablon Kütüphanesi`,
+            tag: '📚 Arşiv'
+          });
+        }
+      });
+
       if (matches.length === 0) {
         dropdown.innerHTML = `<div style="padding: 14px 16px; color: var(--text-muted); font-size: 0.85rem;">"${input.value}" için sonuç bulunamadı.</div>`;
       } else {
@@ -552,7 +770,11 @@ class DealRoomApp {
           .slice(0, 10)
           .map(
             (m) => `
-            <div class="search-result-item" onclick="window.app.openCompanyRoom('${m.companyId}'); document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalSearchInput').value='';">
+            <div class="search-result-item" onclick="${
+              m.archiveCategory
+                ? `window.app.openArchiveModal(null, '${m.archiveCategory}')`
+                : `window.app.openCompanyRoom('${m.companyId}')`
+            }; document.getElementById('globalSearchResults').style.display='none'; document.getElementById('globalSearchInput').value='';">
               <div>
                 <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);">${m.title}</div>
                 <div style="font-size: 0.76rem; color: var(--text-muted);">${m.subtitle}</div>
@@ -1852,6 +2074,13 @@ class DealRoomApp {
           >
             ${comp.is_private ? '🔒 Private Müşteri (Sadece Bana Özel — Değiştir)' : '🌐 Public Müşteri (Herkese Açık — Private Yap)'}
           </button>
+          <button
+            class="btn btn-outline btn-sm"
+            style="background: #FFFFFF; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;"
+            onclick="window.app.openArchiveModal('${comp.id}')"
+          >
+            📚 Arşivden Gönder / Ekle
+          </button>
           <button class="btn btn-outline btn-sm" style="background: #FFFFFF;" onclick="window.app.openMessageDraftModal('${comp.id}')">
             ✉️ İlk Temas / Email Taslağı
           </button>
@@ -3046,14 +3275,27 @@ class DealRoomApp {
 
   openTimelineModal(compId, droppedFile = null) {
     this.pendingDroppedFile = droppedFile;
+    this.selectedTimelineArchiveItem = null;
     const fileBadge = document.getElementById('tlFileBadge');
     const titleInput = document.getElementById('tlTitleInput');
     const typeSelect = document.getElementById('tlTypeSelect');
     const fileInput = document.getElementById('tlFileInput');
+    const archiveSelect = document.getElementById('tlArchiveSelect');
 
     if (fileInput) fileInput.value = '';
     document.getElementById('tlContentInput').value = '';
     document.getElementById('tlAmountInput').value = '';
+
+    if (archiveSelect) {
+      const archiveItems = this.db.archive_items || [];
+      archiveSelect.innerHTML = [
+        `<option value="">-- Arşivden hazır sunum, fiyat listesi, case study, şablon veya doküman seçin --</option>`,
+        ...archiveItems.map((arc) => {
+          const catMeta = ARCHIVE_CATEGORIES[arc.category] || { label: '📚 Arşiv' };
+          return `<option value="${arc.id}">${catMeta.label} (${arc.brand}) — ${arc.title}</option>`;
+        })
+      ].join('');
+    }
 
     if (droppedFile) {
       const fName = droppedFile.name;
@@ -3062,7 +3304,8 @@ class DealRoomApp {
 
       const lower = fName.toLowerCase();
       if (lower.includes('revize')) typeSelect.value = 'revision';
-      else if (lower.includes('teklif') || lower.includes('proposal')) typeSelect.value = 'proposal';
+      else if (lower.includes('teklif') || lower.includes('proposal') || lower.includes('fiyat'))
+        typeSelect.value = 'proposal';
       else if (lower.includes('sozlesme') || lower.includes('sözleşme') || lower.includes('nda'))
         typeSelect.value = 'contract';
       else if (lower.endsWith('.eml') || lower.endsWith('.msg')) typeSelect.value = 'email';
@@ -3074,6 +3317,39 @@ class DealRoomApp {
     }
 
     this.openDialog('timelineDialog');
+  }
+
+  handleTimelineArchivePick(archiveId) {
+    const arc = (this.db.archive_items || []).find((a) => a.id === archiveId);
+    const comp = this.db.companies.find((c) => c.id === this.activeCompanyId);
+    const fileBadge = document.getElementById('tlFileBadge');
+    const titleInput = document.getElementById('tlTitleInput');
+    const contentInput = document.getElementById('tlContentInput');
+    const typeSelect = document.getElementById('tlTypeSelect');
+
+    if (!arc) {
+      this.selectedTimelineArchiveItem = null;
+      return;
+    }
+
+    this.selectedTimelineArchiveItem = arc;
+    const catMeta = ARCHIVE_CATEGORIES[arc.category] || { tlType: 'document' };
+    if (typeSelect) {
+      if (arc.category === 'document' && arc.title.toLowerCase().includes('nda')) {
+        typeSelect.value = 'contract';
+      } else {
+        typeSelect.value = catMeta.tlType || 'document';
+      }
+    }
+    if (titleInput) {
+      titleInput.value = this.interpolateTemplateForCompany(arc.subject || arc.title, comp);
+    }
+    if (contentInput) {
+      contentInput.value = this.interpolateTemplateForCompany(arc.content || '', comp);
+    }
+    if (fileBadge && arc.file_name) {
+      fileBadge.textContent = `📚 Arşiv Dosyası Bağlandı: ${arc.file_name} (${arc.file_size || 'Bulut'})`;
+    }
   }
 
   // TIMELINE KAYDI EKLENDİĞİNDE -> OTOMATİK CONTACTED VEYA ENGAGED YERLEŞTİRME
@@ -3090,9 +3366,9 @@ class DealRoomApp {
     const fileInput = document.getElementById('tlFileInput');
 
     const fileObj = this.pendingDroppedFile || (fileInput.files && fileInput.files[0]);
-    let uploadedUrl = '';
-    let fileName = '';
-    let fileSize = '';
+    let uploadedUrl = this.selectedTimelineArchiveItem ? this.selectedTimelineArchiveItem.file_url || '' : '';
+    let fileName = this.selectedTimelineArchiveItem ? this.selectedTimelineArchiveItem.file_name || '' : '';
+    let fileSize = this.selectedTimelineArchiveItem ? this.selectedTimelineArchiveItem.file_size || '' : '';
 
     if (fileObj) {
       fileName = fileObj.name;
@@ -3332,44 +3608,127 @@ class DealRoomApp {
     this.render();
   }
 
-  openMessageDraftModal(compId) {
+  interpolateTemplateForCompany(rawText, comp) {
+    if (!rawText) return '';
+    if (!comp) return rawText;
+    const decisionMaker = (comp.buyers || [])[0] || comp.contact_person || { name: 'Yetkili', email: '' };
+    const stageName = STAGES_9[(comp.stage || 1) - 1]?.label || 'İlk Temas';
+    const openActs = (comp.actions || []).filter((a) => !a.completed);
+    const actsText =
+      openActs.length > 0
+        ? openActs.map((a) => `- ${a.title} (Hedef: ${a.due_date || 'Bu hafta'})`).join('\n')
+        : '- Uygun olduğunuz takvim aralığında bir sonraki değerlendirme görüşmesinin planlanması';
+
+    return rawText
+      .replace(/\{\{musteri_adi\}\}/g, comp.name || 'Şirketiniz')
+      .replace(/\{\{holding_adi\}\}/g, comp.holding_name || comp.name || '')
+      .replace(/\{\{yetkili_adi\}\}/g, decisionMaker.name || 'Yetkili')
+      .replace(/\{\{marka\}\}/g, comp.brand || 'Yapra.ai & ArdicTech')
+      .replace(/\{\{asama\}\}/g, stageName)
+      .replace(/\{\{satici_adi\}\}/g, this.currentSeller ? this.currentSeller.name : 'Satış Ekibi')
+      .replace(/\{\{satici_email\}\}/g, this.currentSeller ? this.currentSeller.email : '')
+      .replace(/\{\{acik_aksiyonlar\}\}/g, actsText);
+  }
+
+  openMessageDraftModal(compId, preselectedArchiveId = null) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
+    this.draftAttachedArchiveItem = null;
     const decisionMaker = (comp.buyers || [])[0] || comp.contact_person || { name: 'Yetkili', email: '' };
     const stageName = STAGES_9[(comp.stage || 1) - 1].label;
     const openActs = (comp.actions || []).filter((a) => !a.completed);
 
-    const subject = `${comp.name} & ${comp.brand} — ${stageName} Süreci ve Sonraki Adımlar`;
-    const body = `Merhaba ${decisionMaker.name || 'Yetkili'} Bey/Hanım,\n\n${comp.name} bünyesinde yürüttüğümüz ${comp.brand} çalışmamızda "${stageName}" aşamasındaki değerli katkılarınız için teşekkür ederiz.\n\n${
+    let subject = `${comp.name} & ${comp.brand} — ${stageName} Süreci ve Sonraki Adımlar`;
+    let body = `Merhaba ${decisionMaker.name || 'Yetkili'} Bey/Hanım,\n\n${comp.name} bünyesinde yürüttüğümüz ${comp.brand} çalışmamızda "${stageName}" aşamasındaki değerli katkılarınız için teşekkür ederiz.\n\n${
       openActs.length > 0
         ? 'Toplantımız sonrası planladığımız aksiyonlarımız:\n' +
           openActs.map((a) => `- ${a.title} (Hedef: ${a.due_date || 'Bu hafta'})`).join('\n')
         : 'Sürecin bir sonraki adımı için uygun olduğunuz takvim aralığını paylaşabilirseniz memnun oluruz.'
     }\n\nSaygılarımızla,\n${this.currentSeller ? this.currentSeller.name : ''}\n${this.currentSeller ? this.currentSeller.email : ''}`;
 
+    if (preselectedArchiveId) {
+      const arc = (this.db.archive_items || []).find((a) => a.id === preselectedArchiveId);
+      if (arc) {
+        this.draftAttachedArchiveItem = arc;
+        subject = this.interpolateTemplateForCompany(arc.subject || arc.title, comp);
+        if (arc.category === 'email_template') {
+          body = this.interpolateTemplateForCompany(arc.content || '', comp);
+        } else {
+          const catMeta = ARCHIVE_CATEGORIES[arc.category] || { label: 'Doküman' };
+          body = `Merhaba ${decisionMaker.name || 'Yetkili'} Bey/Hanım,\n\n${comp.name} ile yürüttüğümüz ${comp.brand} görüşmelerimiz kapsamında "${arc.title}" (${catMeta.label}) içeriğimizi ve detaylarını aşağıda bilgilerinize sunarız:\n\n----------------------------------------\n📌 ${arc.title}\n${this.interpolateTemplateForCompany(arc.content || '', comp)}${
+            arc.file_url ? `\n\n🔗 Dosya Bağlantısı: ${arc.file_url}` : arc.file_name ? `\n\n📎 Ek Dosya: ${arc.file_name}` : ''
+          }\n----------------------------------------\n\nSorularınız veya bir sonraki adım için uygun olduğunuz zaman aralığını paylaşabilirseniz memnun oluruz.\n\nSaygılarımızla,\n${this.currentSeller ? this.currentSeller.name : ''}\n${this.currentSeller ? this.currentSeller.email : ''}`;
+        }
+      }
+    }
+
+    const archiveOptionsHtml = (this.db.archive_items || [])
+      .map((arc) => {
+        const catMeta = ARCHIVE_CATEGORIES[arc.category] || { label: '📚 Arşiv' };
+        const sel = preselectedArchiveId === arc.id ? 'selected' : '';
+        return `<option value="${arc.id}" ${sel}>${catMeta.label} (${arc.brand}) — ${arc.title}</option>`;
+      })
+      .join('');
+
     const mailtoUrl = `mailto:${decisionMaker.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     document.getElementById('messageDraftBody').innerHTML = `
-      <div style="margin-bottom: 10px;">
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">Alıcı E-posta:</label>
-        <div style="font-weight: 600; font-size: 0.9rem;">${decisionMaker.name || 'Yetkili'} (${decisionMaker.email || 'E-posta tanımlı değil'})</div>
+      <div style="margin-bottom: 12px; padding: 12px; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; gap: 8px; flex-wrap: wrap;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: #0369A1;">
+            📚 Kurumsal Arşivden Şablon / Sunum / Fiyat Listesi / Case Study Seç:
+          </label>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            style="background: #FFFFFF; padding: 3px 10px; font-size: 0.74rem;"
+            onclick="window.app.closeDialog('messageDraftDialog'); window.app.openArchiveModal('${comp.id}');"
+          >
+            📚 Tüm Arşivi Gör ➔
+          </button>
+        </div>
+        <select
+          id="draftArchivePickerSelect"
+          class="select-field"
+          style="width: 100%; background: #FFFFFF;"
+          onchange="window.app.applyArchiveToMessageDraft('${comp.id}', this.value)"
+        >
+          <option value="">-- Standart Toplantı Özeti veya Arşivden Seçin (Sunum, Email Şablonu, Fiyat Listesi, Case Study) --</option>
+          ${archiveOptionsHtml}
+        </select>
+        <div id="draftArchiveAttachmentBadge" style="margin-top: 6px; font-size: 0.76rem; color: #0D1B3E; font-weight: 600;">
+          ${
+            this.draftAttachedArchiveItem && this.draftAttachedArchiveItem.file_name
+              ? `📎 Ekli Arşiv Dosyası: ${this.draftAttachedArchiveItem.file_name} (${this.draftAttachedArchiveItem.file_size || 'Bulut'})`
+              : ''
+          }
+        </div>
+      </div>
+
+      <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">Alıcı (Müşteri Yetkilisi):</label>
+          <div style="font-weight: 700; font-size: 0.9rem; color: #0D1B3E;">
+            🏢 ${comp.name} — 👤 ${decisionMaker.name || 'Yetkili'} (${decisionMaker.email || 'E-posta tanımlı değil'})
+          </div>
+        </div>
       </div>
       <div style="margin-bottom: 10px;">
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">Konu:</label>
-        <input type="text" class="input-field" style="width: 100%;" value="${subject}" id="draftSubjectField" />
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">E-posta Konusu:</label>
+        <input type="text" class="input-field" style="width: 100%; background: #FFFFFF;" value="${subject.replace(/"/g, '&quot;')}" id="draftSubjectField" oninput="window.app.updateDraftMailtoLink('${decisionMaker.email || ''}')" />
       </div>
       <div style="margin-bottom: 14px;">
-        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">Hazır Mesaj &amp; Toplantı Özeti Metni:</label>
-        <textarea class="input-field" style="width: 100%; min-height: 150px;" id="draftBodyField">${body}</textarea>
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">Mesaj &amp; Şablon İçeriği (Müşteriye Özel Otomatik Dolduruldu):</label>
+        <textarea class="input-field" style="width: 100%; min-height: 185px; background: #FFFFFF;" id="draftBodyField" oninput="window.app.updateDraftMailtoLink('${decisionMaker.email || ''}')">${body}</textarea>
       </div>
       <div style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
-        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('draftBodyField').value); alert('Metin panoya kopyalandı!');">
+        <button class="btn btn-outline btn-sm" style="background: #FFFFFF;" onclick="navigator.clipboard.writeText(document.getElementById('draftBodyField').value); window.app.showToast('📋 E-posta metni panoya kopyalandı!');">
           📋 Metni Kopyala
         </button>
-        <div style="display: flex; gap: 8px;">
-          <a href="${mailtoUrl}" class="btn btn-outline btn-sm">✉️ E-posta İstemcisinde Aç</a>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="${mailtoUrl}" id="draftMailtoAnchor" class="btn btn-outline btn-sm" style="background: #FFFFFF;">✉️ E-posta İstemcisinde Aç</a>
           <button class="btn btn-primary btn-sm" onclick="window.app.saveDraftToTimeline('${comp.id}')">
-            📥 Odaya Email Kaydı Olarak Ekle (Otomatik Contacted Yapar)
+            📥 Odaya Kaydet &amp; Gönderildi İşaretle
           </button>
         </div>
       </div>
@@ -3378,24 +3737,665 @@ class DealRoomApp {
     this.openDialog('messageDraftDialog');
   }
 
+  applyArchiveToMessageDraft(compId, archiveId) {
+    this.openMessageDraftModal(compId, archiveId || null);
+  }
+
+  updateDraftMailtoLink(recipientEmail) {
+    const subj = document.getElementById('draftSubjectField')?.value || '';
+    const body = document.getElementById('draftBodyField')?.value || '';
+    const anchor = document.getElementById('draftMailtoAnchor');
+    if (anchor) {
+      anchor.href = `mailto:${recipientEmail}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+    }
+  }
+
   async saveDraftToTimeline(compId) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
     const subj = document.getElementById('draftSubjectField').value;
     const body = document.getElementById('draftBodyField').value;
+    const arc = this.draftAttachedArchiveItem;
+
+    let entryType = 'email';
+    if (arc) {
+      if (arc.category === 'price_list') entryType = 'proposal';
+      else if (arc.category === 'presentation' || arc.category === 'case_study' || arc.category === 'document')
+        entryType = 'document';
+    }
+
     comp.timeline = comp.timeline || [];
     comp.timeline.unshift({
       id: 't-' + Date.now(),
-      type: 'email',
+      type: entryType,
       title: subj,
       content: body,
+      file_name: arc ? arc.file_name || '' : '',
+      file_size: arc ? arc.file_size || '' : '',
+      file_url: arc ? arc.file_url || '' : '',
       author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
       created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
     });
+    this.draftAttachedArchiveItem = null;
     this.autoEvaluateCompanyFunnel(comp);
     this.closeDialog('messageDraftDialog');
     await this.persistDatabase();
     this.render();
+  }
+
+  // ============================================================================
+  // 📚 KURUMSAL ARŞİV & ŞABLON KÜTÜPHANESİ (HER EKRANDAN ULAŞILABİLİR)
+  // Kategoriler: Sunumlar, Email Şablonları, Dokümanlar, Fiyat Listeleri, Case Studies
+  // ============================================================================
+  openArchiveModal(targetCompId = null, initialCategory = null) {
+    if (targetCompId) {
+      this.archiveTargetCompanyId = targetCompId;
+    } else if (this.activeCompanyId) {
+      this.archiveTargetCompanyId = this.activeCompanyId;
+    } else if (!this.archiveTargetCompanyId) {
+      const visible = this.getVisibleCompanies();
+      if (visible.length > 0) this.archiveTargetCompanyId = visible[0].id;
+    }
+
+    if (initialCategory) {
+      this.archiveCategoryFilter = initialCategory;
+    }
+    this.showArchiveForm = false;
+    this.editingArchiveId = null;
+    this.renderArchiveModalBody();
+    this.openDialog('archiveDialog');
+  }
+
+  setArchiveCategory(cat) {
+    this.archiveCategoryFilter = cat;
+    this.renderArchiveModalBody();
+  }
+
+  setArchiveBrand(brand) {
+    this.archiveBrandFilter = brand;
+    this.renderArchiveModalBody();
+  }
+
+  setArchiveSearch(q) {
+    this.archiveSearchQuery = q;
+    this.renderArchiveModalGridOnly();
+  }
+
+  setArchiveTargetCompany(compId) {
+    this.archiveTargetCompanyId = compId;
+    this.renderArchiveModalBody();
+  }
+
+  toggleArchiveForm(editId = null) {
+    if (editId) {
+      this.editingArchiveId = editId;
+      this.showArchiveForm = true;
+    } else {
+      this.editingArchiveId = null;
+      this.showArchiveForm = !this.showArchiveForm;
+    }
+    this.renderArchiveModalBody();
+  }
+
+  getFilteredArchiveItems() {
+    const items = this.db.archive_items || [];
+    const q = (this.archiveSearchQuery || '').trim().toLowerCase();
+    return items.filter((item) => {
+      if (this.archiveCategoryFilter !== 'ALL' && item.category !== this.archiveCategoryFilter) return false;
+      if (
+        this.archiveBrandFilter !== 'ALL' &&
+        item.brand !== this.archiveBrandFilter &&
+        item.brand !== 'Her İkisi'
+      ) {
+        return false;
+      }
+      if (q) {
+        const matchTitle = (item.title || '').toLowerCase().includes(q);
+        const matchSubj = (item.subject || '').toLowerCase().includes(q);
+        const matchContent = (item.content || '').toLowerCase().includes(q);
+        const matchTags = (item.tags || []).some((t) => t.toLowerCase().includes(q));
+        if (!matchTitle && !matchSubj && !matchContent && !matchTags) return false;
+      }
+      return true;
+    });
+  }
+
+  renderArchiveCardsHtml() {
+    const filtered = this.getFilteredArchiveItems();
+    const targetComp = this.db.companies.find((c) => c.id === this.archiveTargetCompanyId);
+
+    if (filtered.length === 0) {
+      return `
+        <div style="grid-column: 1 / -1; padding: 32px; text-align: center; background: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 14px; color: var(--text-muted);">
+          Bu filtrede henüz arşiv kaydı bulunmuyor. Sağ üstteki <strong>"➕ Yeni Şablon / Dosya Ekle"</strong> butonuyla hemen ekleyebilirsiniz.
+        </div>
+      `;
+    }
+
+    return filtered
+      .map((item) => {
+        const catMeta = ARCHIVE_CATEGORIES[item.category] || { label: '📄 Doküman', badge: 'badge-neutral' };
+        const tagsHtml = (item.tags || [])
+          .map(
+            (tg) =>
+              `<span style="font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: #F1F5F9; color: #475569; font-weight: 600;">#${tg}</span>`
+          )
+          .join('');
+
+        return `
+          <div class="archive-card">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span class="badge ${catMeta.badge}" style="background: #FFFFFF;">${catMeta.label}</span>
+                  ${this.getBrandBadgeHtml(item.brand)}
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <button
+                    type="button"
+                    class="btn btn-outline btn-sm"
+                    style="padding: 2px 8px; font-size: 0.72rem; background: #FFFFFF;"
+                    onclick="window.app.toggleArchiveForm('${item.id}')"
+                    title="Düzenle"
+                  >✏️</button>
+                  <button
+                    type="button"
+                    class="btn btn-outline btn-sm"
+                    style="padding: 2px 8px; font-size: 0.72rem; background: #FFFFFF; color: #DC2626;"
+                    onclick="window.app.deleteArchiveItem('${item.id}')"
+                    title="Arşivden Sil"
+                  >🗑️</button>
+                </div>
+              </div>
+
+              <h4 style="font-size: 0.96rem; font-weight: 800; color: #0D1B3E; margin-bottom: 4px; line-height: 1.3;">
+                ${item.title}
+              </h4>
+
+              ${
+                item.subject
+                  ? `<div style="font-size: 0.78rem; font-weight: 600; color: #0369A1; margin-bottom: 6px;">
+                      ✉️ Konu: ${this.interpolateTemplateForCompany(item.subject, targetComp)}
+                    </div>`
+                  : ''
+              }
+
+              <div class="archive-content-box">${this.interpolateTemplateForCompany(item.content || '', targetComp)}</div>
+
+              ${
+                item.file_name
+                  ? `<div style="margin-top: 8px; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; font-size: 0.76rem;">
+                      <span style="font-weight: 700; color: #0369A1;">📎 ${item.file_name} ${item.file_size ? `(${item.file_size})` : ''}</span>
+                      ${
+                        item.file_url
+                          ? `<a href="${item.file_url}" target="_blank" rel="noopener" style="font-weight: 700; color: #0284C7; text-decoration: underline;">Dosyayı Aç ↗</a>`
+                          : `<span style="color: #64748B;">Hazır Kurumsal Dosya</span>`
+                      }
+                    </div>`
+                  : ''
+              }
+
+              ${tagsHtml ? `<div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;">${tagsHtml}</div>` : ''}
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid #F1F5F9; margin-top: 4px;">
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                style="background: #FFFFFF; font-size: 0.75rem; padding: 5px 10px;"
+                onclick="window.app.copyArchiveItemText('${item.id}')"
+              >
+                📋 Metni Kopyala
+              </button>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm"
+                  style="background: #FFFFFF; font-size: 0.75rem; padding: 5px 10px; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;"
+                  onclick="window.app.attachArchiveToCompanyTimeline('${item.id}')"
+                  title="Seçili müşterinin Deal Room tarihçesine (Timeline) doğrudan ekler"
+                >
+                  📥 Müşteri Odasına Ekle
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  style="font-size: 0.75rem; padding: 5px 11px;"
+                  onclick="window.app.useArchiveInEmail('${item.id}')"
+                  title="Seçili müşteriye özel e-posta taslağını bu şablon/doküman ile açar"
+                >
+                  ✉️ Müşteriye Gönder ➔
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  renderArchiveModalGridOnly() {
+    const gridEl = document.getElementById('archiveItemsGridContainer');
+    if (gridEl) {
+      gridEl.innerHTML = this.renderArchiveCardsHtml();
+    }
+  }
+
+  renderArchiveModalBody() {
+    const bodyEl = document.getElementById('archiveDialogBody');
+    if (!bodyEl) return;
+
+    const allItems = this.db.archive_items || [];
+    const visibleCompanies = this.getVisibleCompanies();
+    const editingItem = this.editingArchiveId
+      ? allItems.find((a) => a.id === this.editingArchiveId)
+      : null;
+
+    const countByCat = (cat) =>
+      cat === 'ALL' ? allItems.length : allItems.filter((i) => i.category === cat).length;
+
+    const customerOptionsHtml =
+      visibleCompanies.length === 0
+        ? `<option value="">Henüz müşteri bulunmuyor</option>`
+        : visibleCompanies
+            .map(
+              (c) =>
+                `<option value="${c.id}" ${c.id === this.archiveTargetCompanyId ? 'selected' : ''}>🏢 ${c.name} (${c.holding_name || 'Bağımsız'} • ${c.brand})</option>`
+            )
+            .join('');
+
+    bodyEl.innerHTML = `
+      <!-- ÜST MÜŞTERİ BAĞLAMI & YENİ İÇERİK EKLEME ÇUBUĞU -->
+      <div class="archive-toolbar">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: #0D1B3E; white-space: nowrap;">
+            🎯 Gönderilecek / Eklenecek Müşteri:
+          </label>
+          <select
+            class="select-field"
+            style="min-width: 250px; background: #FFFFFF; font-weight: 700;"
+            onchange="window.app.setArchiveTargetCompany(this.value)"
+          >
+            ${customerOptionsHtml}
+          </select>
+          <span style="font-size: 0.74rem; color: var(--text-muted);">
+            (Şablonlardaki <code>{{musteri_adi}}</code> ve <code>{{yetkili_adi}}</code> seçili müşteriye göre canlı güncellenir)
+          </span>
+        </div>
+
+        <button
+          type="button"
+          class="btn ${this.showArchiveForm ? 'btn-outline' : 'btn-logo-gradient'} btn-sm"
+          style="padding: 8px 14px; font-weight: 700;"
+          onclick="window.app.toggleArchiveForm()"
+        >
+          ${this.showArchiveForm ? '✕ Formu Kapat' : '➕ Yeni Sunum / Şablon / Fiyat Listesi / Case Study Ekle'}
+        </button>
+      </div>
+
+      <!-- YENİ ARŞİV KAYDI / ŞABLON EKLEME VEYA DÜZENLEME FORMU -->
+      ${
+        this.showArchiveForm
+          ? `
+        <form
+          onsubmit="window.app.saveArchiveItem(event)"
+          style="background: #F8FAFC; border: 1.5px solid #16B5EA; border-radius: 14px; padding: 16px; margin-bottom: 16px;"
+        >
+          <div style="font-weight: 800; font-size: 0.92rem; color: #0D1B3E; margin-bottom: 12px;">
+            ${editingItem ? `✏️ Arşiv Kaydını Düzenle: ${editingItem.title}` : '➕ Kurumsal Arşive Yeni İçerik / Şablon / Dosya Ekle'}
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 10px; margin-bottom: 10px;">
+            <div>
+              <label style="font-size: 0.76rem; font-weight: 700; display: block; margin-bottom: 4px;">Kategori *</label>
+              <select id="arcCategoryInput" class="select-field" style="width: 100%; background: #FFFFFF;" required>
+                <option value="presentation" ${editingItem?.category === 'presentation' ? 'selected' : ''}>📊 Sunum (Pitch Deck / Demo)</option>
+                <option value="email_template" ${editingItem?.category === 'email_template' ? 'selected' : ''}>✉️ E-posta Şablonu (Template)</option>
+                <option value="price_list" ${editingItem?.category === 'price_list' ? 'selected' : ''}>💰 Fiyat Listesi &amp; Paketler</option>
+                <option value="case_study" ${editingItem?.category === 'case_study' ? 'selected' : ''}>🏆 Case Study (Başarı Hikayesi)</option>
+                <option value="document" ${editingItem?.category === 'document' ? 'selected' : ''}>📄 Teknik Doküman / Sözleşme (NDA)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; font-weight: 700; display: block; margin-bottom: 4px;">Marka *</label>
+              <select id="arcBrandInput" class="select-field" style="width: 100%; background: #FFFFFF;" required>
+                <option value="Her İkisi" ${editingItem?.brand === 'Her İkisi' ? 'selected' : ''}>✨ Her İkisi (Ortak)</option>
+                <option value="Yapra.ai" ${editingItem?.brand === 'Yapra.ai' ? 'selected' : ''}>🌱 Yapra.ai</option>
+                <option value="ArdicTech" ${editingItem?.brand === 'ArdicTech' ? 'selected' : ''}>⚙️ ArdicTech</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; font-weight: 700; display: block; margin-bottom: 4px;">Başlık / Doküman Adı *</label>
+              <input
+                type="text"
+                id="arcTitleInput"
+                class="input-field"
+                style="width: 100%; background: #FFFFFF;"
+                required
+                placeholder="Örn: Yapra.ai 2026 Enterprise Fiyat Listesi veya Cold Intro Şablonu"
+                value="${(editingItem?.title || '').replace(/"/g, '&quot;')}"
+              />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div>
+              <label style="font-size: 0.76rem; font-weight: 700; display: block; margin-bottom: 4px;">
+                Varsayılan E-posta Konusu (Müşteriye gönderirken otomatik kullanılır)
+              </label>
+              <input
+                type="text"
+                id="arcSubjectInput"
+                class="input-field"
+                style="width: 100%; background: #FFFFFF;"
+                placeholder="Örn: {{musteri_adi}} & {{marka}} — Kurumsal Teklif ve Fiyat Paketlerimiz"
+                value="${(editingItem?.subject || '').replace(/"/g, '&quot;')}"
+              />
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; font-weight: 700; display: block; margin-bottom: 4px;">
+                Etiketler (Virgülle ayırın)
+              </label>
+              <input
+                type="text"
+                id="arcTagsInput"
+                class="input-field"
+                style="width: 100%; background: #FFFFFF;"
+                placeholder="Örn: Fiyat Listesi, PoC, ROI, C-Level"
+                value="${(editingItem?.tags || []).join(', ').replace(/"/g, '&quot;')}"
+              />
+            </div>
+          </div>
+
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 0.76rem; font-weight: 700; display: block; margin-bottom: 4px;">
+              İçerik / E-posta Şablon Metni / Fiyat Tablosu / Case Study Özeti *
+              <span style="font-weight: 500; color: var(--text-muted);">
+                (Kullanılabilir değişkenler: <code>{{musteri_adi}}</code>, <code>{{yetkili_adi}}</code>, <code>{{marka}}</code>, <code>{{satici_adi}}</code>, <code>{{acik_aksiyonlar}}</code>)
+              </span>
+            </label>
+            <textarea
+              id="arcContentInput"
+              class="input-field"
+              style="width: 100%; min-height: 110px; background: #FFFFFF;"
+              required
+              placeholder="E-posta şablon metnini, fiyat paketlerini, case study metriklerini veya sunum özetini buraya yazın..."
+            >${editingItem?.content || ''}</textarea>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px; background: #FFFFFF; padding: 8px 12px; border: 1px solid #E2E8F0; border-radius: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 600; color: #334155;">
+                📎 Dosya Yükle (PDF, PPTX, DOCX — İsteğe Bağlı):
+              </span>
+              <input type="file" id="arcFileInput" style="font-size: 0.76rem;" />
+              ${
+                editingItem?.file_name
+                  ? `<span style="font-size: 0.74rem; color: #0369A1;">Mevcut: ${editingItem.file_name}</span>`
+                  : ''
+              }
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-outline btn-sm" style="background: #FFFFFF;" onclick="window.app.toggleArchiveForm()">İptal</button>
+              <button type="submit" class="btn btn-primary btn-sm">💾 Arşive Kaydet (Bulut Senkron)</button>
+            </div>
+          </div>
+        </form>
+      `
+          : ''
+      }
+
+      <!-- KATEGORİ SEKMELERİ + MARKA FİLTRESİ + ARAMA -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+        <div class="archive-category-tabs" style="margin-bottom: 0;">
+          <button
+            type="button"
+            class="archive-cat-btn ${this.archiveCategoryFilter === 'ALL' ? 'active' : ''}"
+            onclick="window.app.setArchiveCategory('ALL')"
+          >
+            📚 Tümü (${countByCat('ALL')})
+          </button>
+          <button
+            type="button"
+            class="archive-cat-btn ${this.archiveCategoryFilter === 'presentation' ? 'active' : ''}"
+            onclick="window.app.setArchiveCategory('presentation')"
+          >
+            📊 Sunumlar (${countByCat('presentation')})
+          </button>
+          <button
+            type="button"
+            class="archive-cat-btn ${this.archiveCategoryFilter === 'email_template' ? 'active' : ''}"
+            onclick="window.app.setArchiveCategory('email_template')"
+          >
+            ✉️ Email Şablonları (${countByCat('email_template')})
+          </button>
+          <button
+            type="button"
+            class="archive-cat-btn ${this.archiveCategoryFilter === 'price_list' ? 'active' : ''}"
+            onclick="window.app.setArchiveCategory('price_list')"
+          >
+            💰 Fiyat Listeleri (${countByCat('price_list')})
+          </button>
+          <button
+            type="button"
+            class="archive-cat-btn ${this.archiveCategoryFilter === 'case_study' ? 'active' : ''}"
+            onclick="window.app.setArchiveCategory('case_study')"
+          >
+            🏆 Case Studies (${countByCat('case_study')})
+          </button>
+          <button
+            type="button"
+            class="archive-cat-btn ${this.archiveCategoryFilter === 'document' ? 'active' : ''}"
+            onclick="window.app.setArchiveCategory('document')"
+          >
+            📄 Doküman &amp; NDA (${countByCat('document')})
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <select
+            class="select-field"
+            style="background: #FFFFFF; font-size: 0.78rem; padding: 6px 10px;"
+            onchange="window.app.setArchiveBrand(this.value)"
+          >
+            <option value="ALL" ${this.archiveBrandFilter === 'ALL' ? 'selected' : ''}>Tüm Markalar</option>
+            <option value="Yapra.ai" ${this.archiveBrandFilter === 'Yapra.ai' ? 'selected' : ''}>🌱 Sadece Yapra.ai</option>
+            <option value="ArdicTech" ${this.archiveBrandFilter === 'ArdicTech' ? 'selected' : ''}>⚙️ Sadece ArdicTech</option>
+          </select>
+          <input
+            type="search"
+            class="input-field"
+            style="background: #FFFFFF; font-size: 0.78rem; padding: 6px 12px; width: 210px;"
+            placeholder="🔍 Arşivde ara (Fiyat, ROI, NDA...)"
+            value="${(this.archiveSearchQuery || '').replace(/"/g, '&quot;')}"
+            oninput="window.app.setArchiveSearch(this.value)"
+          />
+        </div>
+      </div>
+
+      <!-- ARŞİV KARTLARI LİSTESİ -->
+      <div id="archiveItemsGridContainer" class="archive-grid">
+        ${this.renderArchiveCardsHtml()}
+      </div>
+    `;
+  }
+
+  async saveArchiveItem(e) {
+    e.preventDefault();
+    const category = document.getElementById('arcCategoryInput').value;
+    const brand = document.getElementById('arcBrandInput').value;
+    const title = document.getElementById('arcTitleInput').value.trim();
+    const subject = document.getElementById('arcSubjectInput').value.trim();
+    const content = document.getElementById('arcContentInput').value.trim();
+    const tagsRaw = document.getElementById('arcTagsInput').value.trim();
+    const fileInput = document.getElementById('arcFileInput');
+
+    if (!title) return;
+
+    const tags = tagsRaw
+      ? tagsRaw
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [];
+
+    const existing = this.editingArchiveId
+      ? (this.db.archive_items || []).find((a) => a.id === this.editingArchiveId)
+      : null;
+
+    let fileName = existing ? existing.file_name || '' : '';
+    let fileSize = existing ? existing.file_size || '' : '';
+    let fileUrl = existing ? existing.file_url || '' : '';
+
+    const fileObj = fileInput && fileInput.files && fileInput.files[0];
+    if (fileObj) {
+      fileName = fileObj.name;
+      fileSize = Math.round(fileObj.size / 1024) + ' KB';
+      const safeName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const objectPath = `archive/${safeName}`;
+      const bucket = this.sbBucket || 'deal-documents';
+
+      if (this.sbUrl && this.sbKey) {
+        try {
+          const sbUpRes = await fetch(`${this.sbUrl}/storage/v1/object/${bucket}/${objectPath}`, {
+            method: 'POST',
+            headers: {
+              apikey: this.sbKey,
+              Authorization: `Bearer ${this.accessToken || this.sbKey}`,
+              'Content-Type': fileObj.type || 'application/octet-stream',
+              'x-upsert': 'true'
+            },
+            body: fileObj
+          });
+          if (sbUpRes.ok) {
+            fileUrl = `${this.sbUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
+          }
+        } catch (err) {
+          console.warn('Archive storage direct upload warning:', err);
+        }
+      }
+
+      if (!fileUrl) {
+        try {
+          const base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(fileObj);
+          });
+          const upRes = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName,
+              base64Data,
+              contentType: fileObj.type || 'application/octet-stream',
+              companyId: 'archive'
+            })
+          });
+          const upJson = await upRes.json();
+          if (upJson.url) fileUrl = upJson.url;
+        } catch (err) {
+          console.warn('Archive upload API fallback warning:', err);
+        }
+      }
+    }
+
+    if (existing) {
+      Object.assign(existing, {
+        category,
+        brand,
+        title,
+        subject,
+        content,
+        file_name: fileName,
+        file_size: fileSize,
+        file_url: fileUrl,
+        tags,
+        updated_at: new Date().toISOString()
+      });
+    } else {
+      this.db.archive_items = this.db.archive_items || [];
+      this.db.archive_items.unshift({
+        id: 'arc-' + Date.now(),
+        category,
+        brand,
+        title,
+        subject,
+        content,
+        file_name: fileName,
+        file_size: fileSize,
+        file_url: fileUrl,
+        tags,
+        author_name: this.currentSeller ? this.currentSeller.name : 'Satış Ekibi',
+        author_email: this.currentSeller ? this.currentSeller.email : '',
+        updated_at: new Date().toISOString()
+      });
+    }
+
+    this.showArchiveForm = false;
+    this.editingArchiveId = null;
+    this.renderArchiveModalBody();
+    await this.persistDatabase();
+  }
+
+  async deleteArchiveItem(archiveId) {
+    this.db.archive_items = (this.db.archive_items || []).filter((a) => a.id !== archiveId);
+    this.renderArchiveModalBody();
+    await this.persistDatabase({ delete_archive_id: archiveId });
+  }
+
+  copyArchiveItemText(archiveId) {
+    const item = (this.db.archive_items || []).find((a) => a.id === archiveId);
+    if (!item) return;
+    const comp = this.db.companies.find((c) => c.id === this.archiveTargetCompanyId);
+    const text = this.interpolateTemplateForCompany(item.content || item.title, comp);
+    navigator.clipboard.writeText(text);
+    this.showToast(`📋 "${item.title}" metni panoya kopyalandı!`);
+    this.render();
+  }
+
+  useArchiveInEmail(archiveId) {
+    const compId = this.archiveTargetCompanyId || this.activeCompanyId || (this.getVisibleCompanies()[0]?.id || '');
+    if (!compId) {
+      alert('Lütfen önce bir müşteri seçin veya müşteri odası oluşturun.');
+      return;
+    }
+    this.closeDialog('archiveDialog');
+    this.openMessageDraftModal(compId, archiveId);
+  }
+
+  async attachArchiveToCompanyTimeline(archiveId) {
+    const item = (this.db.archive_items || []).find((a) => a.id === archiveId);
+    const compId = this.archiveTargetCompanyId || this.activeCompanyId;
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!item || !comp) {
+      alert('Lütfen üstteki listeden eklenecek müşteriyi seçin.');
+      return;
+    }
+
+    const catMeta = ARCHIVE_CATEGORIES[item.category] || { tlType: 'document', label: 'Doküman' };
+    let tlType = catMeta.tlType || 'document';
+    if (item.category === 'document' && item.title.toLowerCase().includes('nda')) {
+      tlType = 'contract';
+    }
+
+    comp.timeline = comp.timeline || [];
+    comp.timeline.unshift({
+      id: 't-' + Date.now(),
+      type: tlType,
+      title: `${catMeta.label}: ${this.interpolateTemplateForCompany(item.subject || item.title, comp)}`,
+      content: this.interpolateTemplateForCompany(item.content || '', comp),
+      file_name: item.file_name || '',
+      file_size: item.file_size || '',
+      file_url: item.file_url || '',
+      author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
+      created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
+    });
+
+    this.autoEvaluateCompanyFunnel(comp);
+    this.closeDialog('archiveDialog');
+    this.showToast(`📚 "${item.title}" arşivi "${comp.name}" müşteri odasına eklendi!`);
+    await this.persistDatabase();
+    this.openCompanyRoom(comp.id);
   }
 
   goHomeDashboard() {

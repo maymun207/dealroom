@@ -1699,6 +1699,103 @@ dialog::backdrop {
   box-shadow: 0 2px 8px rgba(22, 181, 234, 0.16);
 }
 
+/* ============================================================================
+   KURUMSAL ARŞİV & ŞABLON KÜTÜPHANESİ (SAF BEYAZ #FFFFFF ESTETİĞİ)
+   ============================================================================ */
+.archive-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  margin-bottom: 14px;
+}
+
+.archive-category-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.archive-cat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #FFFFFF;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.archive-cat-btn:hover {
+  border-color: #94A3B8;
+  color: #0D1B3E;
+}
+
+.archive-cat-btn.active {
+  background: #FFFFFF;
+  color: #0D1B3E;
+  border: 1.5px solid #16B5EA;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(22, 181, 234, 0.18);
+}
+
+.archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(410px, 1fr));
+  gap: 14px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+@media (max-width: 680px) {
+  .archive-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.archive-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.archive-card:hover {
+  border-color: #16B5EA;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+.archive-content-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  color: #334155;
+  white-space: pre-wrap;
+  max-height: 135px;
+  overflow-y: auto;
+  line-height: 1.45;
+}
+
 
 
 

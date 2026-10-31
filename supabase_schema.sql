@@ -108,3 +108,33 @@ CREATE POLICY "deal_documents_update" ON storage.objects
 CREATE POLICY "deal_documents_delete" ON storage.objects
   FOR DELETE TO anon, authenticated
   USING (bucket_id = 'deal-documents');
+
+-- 5. ARCHIVE_ITEMS TABLOSU (Kurumsal Arşiv: Sunumlar, Email Şablonları, Dokümanlar, Fiyat Listeleri, Case Studies)
+CREATE TABLE IF NOT EXISTS public.archive_items (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL DEFAULT 'document', -- 'presentation' | 'email_template' | 'document' | 'price_list' | 'case_study'
+  brand TEXT NOT NULL DEFAULT 'Her İkisi',
+  title TEXT NOT NULL,
+  subject TEXT DEFAULT '',
+  content TEXT DEFAULT '',
+  file_name TEXT DEFAULT '',
+  file_size TEXT DEFAULT '',
+  file_url TEXT DEFAULT '',
+  tags JSONB DEFAULT '[]'::jsonb,
+  author_name TEXT DEFAULT '',
+  author_email TEXT DEFAULT '',
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_items_category ON public.archive_items(category);
+CREATE INDEX IF NOT EXISTS idx_archive_items_brand ON public.archive_items(brand);
+
+ALTER TABLE public.archive_items ENABLE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.archive_items TO anon, authenticated, service_role;
+
+CREATE POLICY "dealroom_archive_items_access" ON public.archive_items
+  FOR ALL TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);

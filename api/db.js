@@ -35,20 +35,23 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const headers = getHeaders(supabaseKey);
-      const [sellersRes, holdingsRes, companiesRes] = await Promise.all([
+      const [sellersRes, holdingsRes, companiesRes, archiveRes] = await Promise.all([
         fetch(`${supabaseUrl}/rest/v1/sellers?select=*&order=created_at.asc`, { headers }),
         fetch(`${supabaseUrl}/rest/v1/holdings?select=*&order=created_at.asc`, { headers }),
-        fetch(`${supabaseUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers })
+        fetch(`${supabaseUrl}/rest/v1/companies?select=*&order=created_at.asc`, { headers }),
+        fetch(`${supabaseUrl}/rest/v1/archive_items?select=*&order=created_at.asc`, { headers })
       ]);
-      const [sellers, holdings, companies] = await Promise.all([
+      const [sellers, holdings, companies, archive_items] = await Promise.all([
         sellersRes.json(),
         holdingsRes.json(),
-        companiesRes.json()
+        companiesRes.json(),
+        archiveRes.ok ? archiveRes.json() : []
       ]);
       return res.status(200).json({
         sellers: Array.isArray(sellers) ? sellers : [],
         holdings: Array.isArray(holdings) ? holdings : [],
-        companies: Array.isArray(companies) ? companies : []
+        companies: Array.isArray(companies) ? companies : [],
+        archive_items: Array.isArray(archive_items) ? archive_items : []
       });
     }
 
@@ -105,6 +108,34 @@ module.exports = async (req, res) => {
           method: 'POST',
           headers: upsertHeaders,
           body: JSON.stringify(cleanCompanies)
+        });
+      }
+      if (body && Array.isArray(body.archive_items) && body.archive_items.length > 0) {
+        const cleanArchive = body.archive_items.map((a) => ({
+          id: a.id,
+          category: a.category || 'document',
+          brand: a.brand || 'Her İkisi',
+          title: a.title || '',
+          subject: a.subject || '',
+          content: a.content || '',
+          file_name: a.file_name || '',
+          file_size: a.file_size || '',
+          file_url: a.file_url || '',
+          tags: Array.isArray(a.tags) ? a.tags : [],
+          author_name: a.author_name || '',
+          author_email: a.author_email || '',
+          updated_at: a.updated_at || new Date().toISOString()
+        }));
+        await fetch(`${supabaseUrl}/rest/v1/archive_items?on_conflict=id`, {
+          method: 'POST',
+          headers: upsertHeaders,
+          body: JSON.stringify(cleanArchive)
+        });
+      }
+      if (body && body.delete_archive_id) {
+        await fetch(`${supabaseUrl}/rest/v1/archive_items?id=eq.${encodeURIComponent(body.delete_archive_id)}`, {
+          method: 'DELETE',
+          headers: getHeaders(supabaseKey)
         });
       }
       return res.status(200).json({ ok: true });

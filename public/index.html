@@ -32,7 +32,17 @@
       <div id="globalSearchResults" class="search-results-dropdown" style="display: none;"></div>
     </div>
 
-    <div class="topbar-actions">
+    <div class="topbar-actions" style="display: flex; align-items: center; gap: 8px;">
+      <button
+        type="button"
+        class="btn btn-outline btn-sm"
+        id="openArchiveTopBtn"
+        style="background: #FFFFFF; font-weight: 700; border-color: #16B5EA; color: #0D1B3E;"
+        onclick="window.app.openArchiveModal()"
+        title="Sunumlar, E-posta Şablonları, Fiyat Listeleri, Case Studies ve Doküman Arşivi"
+      >
+        📚 Kurumsal Arşiv &amp; Şablonlar
+      </button>
       <button class="btn btn-outline btn-sm" id="userBadgeBtn" onclick="window.app.handleSignOut()" title="Supabase Oturumunu Kapat">
         👤 <span id="activeUserEmail">Giriş Yapılmadı</span>
       </button>
@@ -319,6 +329,15 @@
           ></textarea>
         </div>
 
+        <div style="margin-bottom: 12px; padding: 10px 12px; background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: #0369A1; display: block; margin-bottom: 6px;">
+            📚 Kurumsal Arşivden Hazır Sunum / Fiyat Listesi / Case Study / Doküman Seç (İsteğe Bağlı)
+          </label>
+          <select id="tlArchiveSelect" class="select-field" style="width: 100%; background: #FFFFFF;" onchange="window.app.handleTimelineArchivePick(this.value)">
+            <option value="">-- Arşivden hazır içerik veya doküman bağlamak için seçin --</option>
+          </select>
+        </div>
+
         <div style="margin-bottom: 14px; padding: 10px 12px; background: var(--bg-page); border: 1px solid var(--border-light); border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
           <span id="tlFileBadge" style="font-size: 0.82rem; color: var(--text-secondary);">📎 Ekli dosya yok (İsteğe bağlı seçebilirsiniz)</span>
           <input type="file" id="tlFileInput" style="font-size: 0.78rem;" />
@@ -341,12 +360,30 @@
 
   <!-- 5. TEK TIKLA MESAJ / EMAIL TASLAĞI MODALI -->
   <dialog id="messageDraftDialog" closedby="any" aria-labelledby="messageDraftTitle">
-    <div class="dialog-inner">
+    <div class="dialog-inner" style="max-width: 760px;">
       <div class="dialog-header">
-        <h3 id="messageDraftTitle">✉️ Tek Tıkla Müşteri Email &amp; WhatsApp Taslağı</h3>
+        <h3 id="messageDraftTitle">✉️ Tek Tıkla Müşteri Email &amp; Şablon Gönderimi</h3>
         <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('messageDraftDialog')">✕</button>
       </div>
       <div id="messageDraftBody"></div>
+    </div>
+  </dialog>
+
+  <!-- 6. KURUMSAL ARŞİV & ŞABLON KÜTÜPHANESİ MODALI (HER EKRANDAN ULAŞILABİLİR) -->
+  <dialog id="archiveDialog" closedby="any" aria-labelledby="archiveDialogTitle" style="max-width: 980px; width: 95vw;">
+    <div class="dialog-inner" style="max-width: 980px;">
+      <div class="dialog-header">
+        <div>
+          <h3 id="archiveDialogTitle" style="font-size: 1.15rem; color: #0D1B3E;">
+            📚 Kurumsal Arşiv &amp; Satış Kütüphanesi (Yapra.ai &amp; ArdicTech)
+          </h3>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+            Sunumlar, E-posta Şablonları, Fiyat Listeleri, Case Studies ve Teknik/Hukuki Dokümanlar — Her ekrandan ulaşın, tek tıkla müşteriye gönderin
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.app.closeDialog('archiveDialog')">✕</button>
+      </div>
+      <div id="archiveDialogBody"></div>
     </div>
   </dialog>
 
