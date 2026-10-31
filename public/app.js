@@ -2136,38 +2136,112 @@ class DealRoomApp {
               ${comp.summary_note || 'Müşteri notu veya kapsam özeti eklemek için "Genel Kartı Düzenle" butonuna tıklayabilirsiniz.'}
             </p>
 
-            <!-- İLİŞKİDE OLDUĞUMUZ ÜRÜNLER & ÇOKLU SEÇİM / YENİ KATEGORİ EKLEME BARI -->
-            <div style="margin-top: 10px; padding: 8px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;">
-              <span style="font-size: 0.76rem; font-weight: 800; color: #0D1B3E; margin-right: 4px;">📦 Satılacak Ürünler:</span>
-              ${Array.from(new Set([...STANDARD_PRODUCTS_8, ...(comp.products || [])]))
-                .map((prod) => {
-                  const isSelected = (comp.products || []).includes(prod);
-                  const safeProd = prod.replace(/'/g, "\\'");
-                  return `
+            <!-- İLİŞKİDE OLDUĞUMUZ ÜRÜNLER: SADECE SEÇİLİ OLANLAR LİSTE GİBİ ALT ALTA (2'DEN FAZLAYSA 2 SÜTUN) + ÜRÜN SEÇ MENÜSÜ -->
+            ${(() => {
+              const selectedProducts =
+                Array.isArray(comp.products) && comp.products.length > 0
+                  ? comp.products
+                  : [comp.brand || 'Yapra.ai'];
+              const allProductOptions = Array.from(new Set([...STANDARD_PRODUCTS_8, ...selectedProducts]));
+              const isPickerOpen = this.openProductPickerCompId === comp.id;
+              const gridCols = selectedProducts.length > 2 ? 'repeat(2, minmax(170px, 1fr))' : '1fr';
+
+              return `
+                <div style="margin-top: 10px; padding: 10px 14px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; min-width: 320px; max-width: 560px; width: 100%; position: relative; text-align: left;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: ${
+                    selectedProducts.length > 0 ? '8px' : '0'
+                  };">
+                    <span style="font-size: 0.78rem; font-weight: 800; color: #0D1B3E;">
+                      📦 Satılacak Ürünler (${selectedProducts.length})
+                    </span>
                     <button
                       type="button"
-                      onclick="window.app.toggleCompanyProductInline('${comp.id}', '${safeProd}')"
-                      style="padding: 3px 10px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; cursor: pointer; transition: all 0.15s; ${
-                        isSelected
-                          ? 'background: #EFF6FF; color: #0284C7; border: 1.5px solid #16B5EA;'
-                          : 'background: #FFFFFF; color: #64748B; border: 1px dashed #CBD5E1;'
-                      }"
-                      title="Bu ürünü müşteriye eklemek/çıkarmak için tıklayın"
+                      class="btn btn-outline btn-sm"
+                      style="padding: 3px 10px; font-size: 0.73rem; border-radius: 999px; background: #FFFFFF; font-weight: 700;"
+                      onclick="window.app.toggleProductPickerPopover('${comp.id}', event)"
                     >
-                      ${isSelected ? '✓ ' : '+ '}${prod}
+                      ${isPickerOpen ? '▴ Menüyü Kapat' : '▾ Ürün Seç / Ekle'}
                     </button>
-                  `;
-                })
-                .join('')}
-              <button
-                type="button"
-                class="btn btn-outline btn-sm"
-                style="padding: 2px 8px; font-size: 0.72rem; border-radius: 999px; background: #FFFFFF;"
-                onclick="window.app.promptAddCustomProductCategory('${comp.id}')"
-              >
-                + Yeni Kategori
-              </button>
-            </div>
+                  </div>
+
+                  ${
+                    selectedProducts.length > 0
+                      ? `<div style="display: grid; grid-template-columns: ${gridCols}; gap: 6px 14px;">
+                          ${selectedProducts
+                            .map((prod) => {
+                              const safeProd = prod.replace(/'/g, "\\'");
+                              return `
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 10px; background: #FFFFFF; border: 1px solid #BAE6FD; border-radius: 8px; font-size: 0.78rem; font-weight: 700; color: #0369A1;">
+                                  <span>✓ ${prod}</span>
+                                  <span
+                                    onclick="window.app.toggleCompanyProductInline('${comp.id}', '${safeProd}')"
+                                    title="Listeden çıkar"
+                                    style="cursor: pointer; color: #94A3B8; font-weight: 800; font-size: 0.85rem; line-height: 1;"
+                                  >×</span>
+                                </div>
+                              `;
+                            })
+                            .join('')}
+                        </div>`
+                      : `<div style="font-size: 0.76rem; color: #94A3B8;">Henüz ürün seçilmedi. Sağdaki "Ürün Seç / Ekle" butonundan işaretleyebilirsiniz.</div>`
+                  }
+
+                  ${
+                    isPickerOpen
+                      ? `<div
+                          onclick="event.stopPropagation()"
+                          style="margin-top: 10px; padding: 10px 12px; background: #FFFFFF; border: 1.5px solid #16B5EA; border-radius: 10px; box-shadow: 0 10px 25px rgba(13, 27, 62, 0.12);"
+                        >
+                          <div style="font-size: 0.74rem; font-weight: 800; color: #64748B; margin-bottom: 6px;">
+                            İşaretlediğiniz ürünler yukarıdaki listeye eklenir:
+                          </div>
+                          <div style="display: grid; grid-template-columns: repeat(2, minmax(140px, 1fr)); gap: 6px;">
+                            ${allProductOptions
+                              .map((prod) => {
+                                const isSelected = selectedProducts.includes(prod);
+                                const safeProd = prod.replace(/'/g, "\\'");
+                                return `
+                                  <label style="display: flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: ${
+                                    isSelected ? '700' : '500'
+                                  }; color: ${isSelected ? '#0284C7' : '#334155'}; cursor: pointer; padding: 3px 6px; border-radius: 6px; background: ${
+                                    isSelected ? '#F0F9FF' : 'transparent'
+                                  };">
+                                    <input
+                                      type="checkbox"
+                                      ${isSelected ? 'checked' : ''}
+                                      onchange="window.app.toggleCompanyProductInline('${comp.id}', '${safeProd}')"
+                                      style="accent-color: #0284C7;"
+                                    />
+                                    <span>${prod}</span>
+                                  </label>
+                                `;
+                              })
+                              .join('')}
+                          </div>
+                          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                            <button
+                              type="button"
+                              class="btn btn-outline btn-sm"
+                              style="padding: 3px 10px; font-size: 0.72rem; background: #FFFFFF;"
+                              onclick="window.app.promptAddCustomProductCategory('${comp.id}')"
+                            >
+                              + Yeni Kategori Ekle
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn-primary btn-sm"
+                              style="padding: 3px 12px; font-size: 0.72rem;"
+                              onclick="window.app.toggleProductPickerPopover(null, event)"
+                            >
+                              Tamam
+                            </button>
+                          </div>
+                        </div>`
+                      : ''
+                  }
+                </div>
+              `;
+            })()}
 
             ${
               sisterCompanies.length > 0
@@ -2990,6 +3064,12 @@ class DealRoomApp {
   }
 
   // ÜRÜNLER, SÖZLEŞME, FATURA, ÖDEME & PROJE TESLİMATI METOTLARI
+  toggleProductPickerPopover(compId, event) {
+    if (event) event.stopPropagation();
+    this.openProductPickerCompId = this.openProductPickerCompId === compId ? null : compId;
+    this.render();
+  }
+
   async toggleCompanyProductInline(compId, prodName) {
     const comp = this.db.companies.find((c) => c.id === compId);
     if (!comp) return;
