@@ -2028,6 +2028,29 @@ class DealRoomApp {
               </strong>
             </div>
           </div>
+
+          <!-- DOĞRUDAN MÜŞTERİ KARTINDA GÖRÜNÜR DRAG & DROP EMAIL / DOKÜMAN ALANI -->
+          <div
+            id="roomQuickDropzone"
+            class="dropzone-box"
+            style="margin-top: 14px; margin-bottom: 0; padding: 12px 16px; background: #FFFFFF; border: 1.5px dashed #93C5FD; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;"
+            onclick="window.app.openTimelineModal('${comp.id}')"
+          >
+            <div style="display: flex; align-items: center; gap: 10px; text-align: left;">
+              <span style="font-size: 1.35rem;">📥</span>
+              <div>
+                <div style="font-weight: 700; font-size: 0.86rem; color: #0D1B3E;">
+                  Müşteriden Gelen / Gönderilen Email, Doküman veya Teklif Dosyasını Buraya Sürükleyip Bırakın
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                  PDF, Word, Excel, Sunum veya .eml dosyasını sürükleyin ya da tıklayarak Email metnini + ekli dokümanı birlikte kaydedin
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" style="background: #FFFFFF; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;">
+              ➕ Email / Doküman Ekle
+            </button>
+          </div>
         </div>
       </section>
 
@@ -3123,27 +3146,95 @@ class DealRoomApp {
   }
 
   bindDropzoneEvents(compId) {
-    const dz = document.getElementById('roomDropzone');
-    if (!dz) return;
+    const attachDropHandlers = (el, isInsideModal = false) => {
+      if (!el || el.dataset.dropBound === '1') return;
+      el.dataset.dropBound = '1';
 
-    dz.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dz.classList.add('dragover');
-    });
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        el.classList.add('dragover');
+        const quickDz = document.getElementById('roomQuickDropzone');
+        if (quickDz) quickDz.classList.add('dragover');
+      });
 
-    dz.addEventListener('dragleave', () => {
-      dz.classList.remove('dragover');
-    });
+      el.addEventListener('dragleave', () => {
+        el.classList.remove('dragover');
+        const quickDz = document.getElementById('roomQuickDropzone');
+        if (quickDz) quickDz.classList.remove('dragover');
+      });
 
-    dz.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dz.classList.remove('dragover');
-      const files = e.dataTransfer?.files;
-      if (files && files.length > 0) {
-        this.pendingDroppedFile = files[0];
-        this.openTimelineModal(compId, files[0]);
-      }
-    });
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.remove('dragover');
+        const quickDz = document.getElementById('roomQuickDropzone');
+        if (quickDz) quickDz.classList.remove('dragover');
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+          this.pendingDroppedFile = files[0];
+          if (isInsideModal) {
+            this.applyDroppedFileToOpenTimelineModal(files[0]);
+          } else {
+            this.openTimelineModal(this.activeCompanyId || compId, files[0]);
+          }
+        }
+      });
+    };
+
+    attachDropHandlers(document.getElementById('roomQuickDropzone'), false);
+    attachDropHandlers(document.getElementById('roomDropzone'), false);
+    attachDropHandlers(document.getElementById('timelineModalDropzone'), true);
+    attachDropHandlers(document.getElementById('appRoot'), false);
+  }
+
+  applyDroppedFileToOpenTimelineModal(droppedFile) {
+    if (!droppedFile) return;
+    this.pendingDroppedFile = droppedFile;
+    const fileBadge = document.getElementById('tlFileBadge');
+    const titleInput = document.getElementById('tlTitleInput');
+    const contentInput = document.getElementById('tlContentInput');
+    const typeSelect = document.getElementById('tlTypeSelect');
+
+    const fName = droppedFile.name;
+    if (fileBadge) {
+      fileBadge.textContent = `📎 Sürüklenen Dosya: ${fName} (${Math.round(droppedFile.size / 1024)} KB)`;
+    }
+    if (titleInput && !titleInput.value.trim()) {
+      titleInput.value = fName.replace(/\.[^/.]+$/, '');
+    }
+
+    const lower = fName.toLowerCase();
+    if (typeSelect) {
+      if (lower.includes('revize')) typeSelect.value = 'revision';
+      else if (lower.includes('teklif') || lower.includes('proposal') || lower.includes('fiyat'))
+        typeSelect.value = 'proposal';
+      else if (lower.includes('sozlesme') || lower.includes('sözleşme') || lower.includes('nda'))
+        typeSelect.value = 'contract';
+      else if (lower.endsWith('.eml') || lower.endsWith('.msg')) typeSelect.value = 'email';
+      else typeSelect.value = 'document';
+    }
+
+    // Eğer sürüklenen dosya .eml veya .txt ise içeriğini otomatik oku ve Konu + Email Metni alanlarına yerleştir
+    if (lower.endsWith('.eml') || lower.endsWith('.txt')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const raw = String(reader.result || '');
+        if (lower.endsWith('.eml')) {
+          const subjMatch = raw.match(/^Subject:\s*(.+)$/im);
+          if (subjMatch && titleInput) {
+            titleInput.value = subjMatch[1].trim();
+          }
+          const parts = raw.split(/\r?\n\r?\n/);
+          const bodyText = parts.slice(1).join('\n\n').trim();
+          if (contentInput && !contentInput.value.trim()) {
+            contentInput.value = bodyText.slice(0, 4000);
+          }
+        } else if (contentInput && !contentInput.value.trim()) {
+          contentInput.value = raw.slice(0, 4000);
+        }
+      };
+      reader.readAsText(droppedFile);
+    }
   }
 
   openTimelineModal(compId, droppedFile = null) {
@@ -3171,22 +3262,11 @@ class DealRoomApp {
     }
 
     if (droppedFile) {
-      const fName = droppedFile.name;
-      fileBadge.textContent = `📎 Sürüklenen Dosya: ${fName} (${Math.round(droppedFile.size / 1024)} KB)`;
-      titleInput.value = fName.replace(/\.[^/.]+$/, '');
-
-      const lower = fName.toLowerCase();
-      if (lower.includes('revize')) typeSelect.value = 'revision';
-      else if (lower.includes('teklif') || lower.includes('proposal') || lower.includes('fiyat'))
-        typeSelect.value = 'proposal';
-      else if (lower.includes('sozlesme') || lower.includes('sözleşme') || lower.includes('nda'))
-        typeSelect.value = 'contract';
-      else if (lower.endsWith('.eml') || lower.endsWith('.msg')) typeSelect.value = 'email';
-      else typeSelect.value = 'document';
+      this.applyDroppedFileToOpenTimelineModal(droppedFile);
     } else {
-      fileBadge.textContent = '📎 Ekli dosya yok (İsteğe bağlı seçebilirsiniz)';
+      fileBadge.textContent = '📎 Müşterinin paylaştığı dokümanı / .eml dosyasını buraya sürükleyin veya sağdan seçin';
       titleInput.value = '';
-      typeSelect.value = 'meeting_note';
+      typeSelect.value = 'email';
     }
 
     this.openDialog('timelineDialog');
