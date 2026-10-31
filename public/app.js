@@ -379,7 +379,10 @@ class DealRoomApp {
             website: c.website || '',
             city: c.city || 'İstanbul',
             employee_size: c.employee_size || '',
+            forecast_value: Number(c.forecast_value || 0),
             deal_value: Number(c.deal_value || 0),
+            budget_reserved: c.budget_reserved || 'no',
+            planned_project_date: c.planned_project_date || '',
             currency: c.currency || 'USD',
             expected_invoice_date: c.expected_invoice_date || '',
             payment_date: c.payment_date || '',
@@ -583,6 +586,27 @@ class DealRoomApp {
     const buyers = company.buyers || [];
     const actions = company.actions || [];
     const stage = Number(company.stage || 1);
+
+    // KURAL 0A (EN KRİTİK RED FLAG): Bütçe Rezerve Edilip Edilmediği
+    if (company.budget_reserved === 'pending') {
+      flags.push({
+        type: 'auto',
+        text: `Bütçe Onay Sürecinde: Müşteride bütçe henüz kesin olarak rezerve edilmedi (⏳ Onay Bekliyor).`
+      });
+    } else if (company.budget_reserved !== 'yes') {
+      flags.push({
+        type: 'auto',
+        text: `Kritik Red Flag — Bütçe Rezerve Değil: Müşteride bu proje için henüz bütçe rezerve edilmedi!`
+      });
+    }
+
+    // KURAL 0B (EN KRİTİK RED FLAG): Projenin Ne Zaman Planlandığı
+    if (!company.planned_project_date || !String(company.planned_project_date).trim()) {
+      flags.push({
+        type: 'auto',
+        text: `Kritik Red Flag — Proje Zamanı Planlanmadı: Projenin ne zaman hayata geçirileceği henüz planlanmadı!`
+      });
+    }
 
     // KURAL 1: Potansiyel Win ile Teklif Çıkılması
     if (stage >= 6) {
@@ -1151,6 +1175,11 @@ class DealRoomApp {
         .map((c) => {
           const rf = this.computeRedFlags(c).length;
           const prodText = Array.isArray(c.products) && c.products.length > 0 ? ` • 📦 ${c.products.join(', ')}` : '';
+          const moneyText = c.deal_value
+            ? `💰 Teklif: ${this.formatCurrency(c.deal_value)}`
+            : c.forecast_value
+            ? `🎯 Forecast: ${this.formatCurrency(c.forecast_value)}`
+            : '$0';
           return `
             <div class="funnel-hover-item" onclick="window.app.openCompanyRoom('${c.id}')">
               <div>
@@ -1159,7 +1188,7 @@ class DealRoomApp {
                   <span style="font-size: 0.72rem; color: var(--text-muted);">${c.is_private ? '🔒' : '🌐'}</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">
-                  🏛️ ${c.holding_name || 'Bağımsız'} • ${c.brand}${prodText} • ${this.formatCurrency(c.deal_value)}
+                  🏛️ ${c.holding_name || 'Bağımsız'} • ${c.brand}${prodText} • ${moneyText}
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 6px;">
@@ -2000,9 +2029,17 @@ class DealRoomApp {
         </div>
 
         <div>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px;">Teklif &amp; Red Flag</div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <strong style="font-size: 0.95rem;">${this.formatCurrency(c.deal_value)}</strong>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px;">Forecast / Teklif &amp; Red Flag</div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <strong style="font-size: 0.9rem;">
+              ${
+                c.deal_value
+                  ? `💰 ${this.formatCurrency(c.deal_value)}`
+                  : c.forecast_value
+                  ? `🎯 ${this.formatCurrency(c.forecast_value)} (Forecast)`
+                  : '$0'
+              }
+            </strong>
             ${
               redFlags.length > 0
                 ? `<span class="badge badge-redflag">🚩 ${redFlags.length} Red Flag</span>`
@@ -2265,34 +2302,113 @@ class DealRoomApp {
             }
           </div>
 
-          <!-- KARTIN ALT TARAFINDA YAN YANA METRİK KUTULARI (TEKLİF/SÖZLEŞME, FATURA/ÖDEME, TESLİMAT, RED FLAG) -->
-          <div class="general-metrics-bar" style="grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));">
-            <div class="metric-card-mini" style="background: #FFFFFF;">
-              <label>Teklif &amp; Sözleşme Durumu</label>
-              <strong>${this.formatCurrency(comp.deal_value)}</strong>
-              <div style="font-size: 0.72rem; color: #0369A1; font-weight: 700; margin-top: 2px;">
-                ${comp.contract_status ? `📜 ${comp.contract_status}` : '📝 Sözleşme Girilmedi'}
+          <!-- KARTIN ALT TARAFINDA YAN YANA 4 METRİK KUTUSU (1: FORECAST & TEKLİF, 2: BÜTÇE REZERVE & PROJE ZAMANI, 3: SÖZLEŞME/FATURA/ÖDEME/TESLİMAT, 4: RED FLAG) -->
+          <div class="general-metrics-bar" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <!-- 1. KUTU: FORECAST (POTANSİYEL) & RESMİ TEKLİF RAKAMI -->
+            <div class="metric-card-mini" style="background: #FFFFFF; text-align: left; padding: 10px 14px;">
+              <label style="display: block; margin-bottom: 4px;">🎯 Potansiyel (Forecast) &amp; 💰 Teklif</label>
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 3px 0;"
+                onclick="window.app.promptUpdateMoneyField('${comp.id}', 'forecast_value', 'Tahmini Potansiyel (Forecast) Tutarı ($)')"
+                title="Forecast (Potansiyel) rakamını değiştirmek için tıklayın"
+              >
+                <span style="font-size: 0.76rem; color: #0369A1; font-weight: 700;">🎯 Forecast:</span>
+                <strong style="font-size: 0.92rem; color: #0369A1;">
+                  ${comp.forecast_value ? this.formatCurrency(comp.forecast_value) : 'Girilmedi ✏️'}
+                </strong>
+              </div>
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 3px 0; border-top: 1px dashed #E2E8F0; margin-top: 3px;"
+                onclick="window.app.promptUpdateMoneyField('${comp.id}', 'deal_value', 'Resmi Teklif Tutarı ($)')"
+                title="Resmi Teklif rakamını değiştirmek için tıklayın"
+              >
+                <span style="font-size: 0.76rem; color: #047857; font-weight: 700;">💰 Teklif:</span>
+                <strong style="font-size: 0.92rem; color: ${comp.deal_value ? '#047857' : '#94A3B8'};">
+                  ${comp.deal_value ? this.formatCurrency(comp.deal_value) : 'Teklif Verilmedi ✏️'}
+                </strong>
               </div>
             </div>
-            <div class="metric-card-mini" style="background: #FFFFFF;">
-              <label>📅 Fatura &amp; 💳 Ödeme Günü</label>
-              <strong style="font-size: 0.88rem;">Fatura: ${comp.expected_invoice_date || 'Belirlenmedi'}</strong>
+
+            <!-- 2. KUTU: BÜTÇE REZERVE Mİ & PROJE NE ZAMAN PLANLANDI (KRİTİK RED FLAG KUTUSU) -->
+            ${(() => {
+              const isBudgetOk = comp.budget_reserved === 'yes';
+              const isDateOk = Boolean(comp.planned_project_date && String(comp.planned_project_date).trim());
+              const hasBudgetOrPlanFlag = !isBudgetOk || !isDateOk;
+              return `
+                <div
+                  class="metric-card-mini"
+                  style="background: ${hasBudgetOrPlanFlag ? '#FFF5F5' : '#F0FDF4'}; border: 1.5px solid ${
+                    hasBudgetOrPlanFlag ? '#FCA5A5' : '#86EFAC'
+                  }; text-align: left; padding: 10px 14px;"
+                >
+                  <label style="display: flex; align-items: center; justify-content: space-between; color: ${
+                    hasBudgetOrPlanFlag ? '#DC2626' : '#047857'
+                  }; font-weight: 800; margin-bottom: 5px;">
+                    <span>🏦 Bütçe &amp; 🗓️ Proje Zamanı</span>
+                    <span>${hasBudgetOrPlanFlag ? '🚩 Red Flag' : '✅ Hazır'}</span>
+                  </label>
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 5px;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #334155;">Bütçe:</span>
+                    <select
+                      class="select-field"
+                      style="padding: 2px 8px; font-size: 0.74rem; font-weight: 700; background: #FFFFFF; border-color: ${
+                        isBudgetOk ? '#86EFAC' : '#FCA5A5'
+                      }; color: ${isBudgetOk ? '#047857' : '#DC2626'}; width: 145px;"
+                      onchange="window.app.updateCompanyContractAndDatesInline('${comp.id}', 'budget_reserved', this.value)"
+                    >
+                      <option value="no" ${!comp.budget_reserved || comp.budget_reserved === 'no' ? 'selected' : ''}>❌ Rezerve Değil</option>
+                      <option value="pending" ${comp.budget_reserved === 'pending' ? 'selected' : ''}>⏳ Onay Sürecinde</option>
+                      <option value="yes" ${comp.budget_reserved === 'yes' ? 'selected' : ''}>✅ Rezerve Edildi</option>
+                    </select>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #334155;">Plan:</span>
+                    <input
+                      type="text"
+                      class="input-field"
+                      style="padding: 2px 8px; font-size: 0.74rem; font-weight: 700; background: #FFFFFF; border-color: ${
+                        isDateOk ? '#86EFAC' : '#FCA5A5'
+                      }; width: 145px;"
+                      placeholder="Örn: 2026 Q2 / Haziran"
+                      value="${(comp.planned_project_date || '').replace(/"/g, '&quot;')}"
+                      onchange="window.app.updateCompanyContractAndDatesInline('${comp.id}', 'planned_project_date', this.value)"
+                    />
+                  </div>
+                </div>
+              `;
+            })()}
+
+            <!-- 3. KUTU: SÖZLEŞME, FATURA, ÖDEME & PROJE TESLİMAT TAKİBİ -->
+            <div class="metric-card-mini" style="background: #FFFFFF; cursor: pointer; text-align: left; padding: 10px 14px;" onclick="window.app.setExpandedRoomWidget('deliveries')" title="Sözleşme, Fatura, Ödeme ve Teslimatları Yönetmek İçin Tıklayın">
+              <label style="display: block; margin-bottom: 4px;">📜 Sözleşme, Fatura &amp; Teslimat</label>
+              <div style="font-size: 0.76rem; color: #0369A1; font-weight: 800;">
+                ${
+                  comp.contract_status === 'signed' || comp.contract_status === 'Final Sözleşme'
+                    ? '✅ Final Sözleşme İmzalandı'
+                    : comp.contract_status === 'final'
+                    ? '📜 Final Sözleşme'
+                    : comp.contract_status === 'draft' || comp.contract_status === 'Sözleşme Draft'
+                    ? '📝 Sözleşme Draft'
+                    : '📝 Sözleşme Girilmedi'
+                }
+              </div>
               <div style="font-size: 0.73rem; color: var(--text-secondary); font-weight: 600; margin-top: 2px;">
-                💳 Ödeme: ${comp.payment_date || 'Belirlenmedi'}
+                📅 Fatura: ${comp.expected_invoice_date || '-'} • 💳 Ödeme: ${comp.payment_date || '-'}
               </div>
-            </div>
-            <div class="metric-card-mini" style="background: #FFFFFF; cursor: pointer;" onclick="window.app.setExpandedRoomWidget('deliveries')" title="Proje Teslimatlarını Yönetmek İçin Tıklayın">
-              <label>🚀 Proje Teslimat Takibi</label>
-              <strong style="font-size: 0.88rem;">${comp.delivery_date || 'Planlanmadı'}</strong>
               <div style="font-size: 0.72rem; color: #0284C7; font-weight: 700; margin-top: 2px;">
-                📦 ${(comp.deliveries || []).length} Teslimat / Milestone ➔
+                🚀 Teslimat: ${comp.delivery_date || 'Planlanmadı'} (${(comp.deliveries || []).length} Kalem) ➔
               </div>
             </div>
-            <div class="metric-card-mini" style="background: #FFFFFF;">
-              <label>Red Flag &amp; Eksik</label>
-              <strong style="color: ${redFlags.length > 0 ? 'var(--danger-color)' : 'var(--success-color)'};">
-                🚩 ${redFlags.length} Risk / ⚠️ ${missingInfo.length} Eksik
+
+            <!-- 4. KUTU: RED FLAG & EKSİK BİLGİLER -->
+            <div class="metric-card-mini" style="background: #FFFFFF; cursor: pointer; text-align: left; padding: 10px 14px;" onclick="window.app.setExpandedRoomWidget('redflags')" title="Red Flag ve Eksik Bilgileri Görmek İçin Tıklayın">
+              <label style="display: block; margin-bottom: 4px;">🚩 Red Flag &amp; ⚠️ Eksik Bilgiler</label>
+              <strong style="font-size: 0.95rem; color: ${redFlags.length > 0 ? 'var(--danger-color)' : 'var(--success-color)'};">
+                🚩 ${redFlags.length} Red Flag / ⚠️ ${missingInfo.length} Eksik
               </strong>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+                Detayları görmek için tıklayın ➔
+              </div>
             </div>
           </div>
 
@@ -3093,6 +3209,18 @@ class DealRoomApp {
     if (!comp.products.includes(prod)) {
       comp.products.push(prod);
     }
+    await this.persistDatabase();
+    this.render();
+  }
+
+  async promptUpdateMoneyField(compId, fieldName, labelText) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+    const currentVal = comp[fieldName] || '';
+    const raw = prompt(`${comp.name} — ${labelText} girin (Sadece rakam, Örn: 50000):`, currentVal);
+    if (raw === null) return;
+    const cleaned = Number(String(raw).replace(/[^0-9.]/g, '') || 0);
+    comp[fieldName] = cleaned;
     await this.persistDatabase();
     this.render();
   }
@@ -4528,9 +4656,12 @@ class DealRoomApp {
     document.getElementById('compBrandSelect').value = 'Yapra.ai';
     document.getElementById('compFunnelSelect').value = 'Addressables';
     document.getElementById('compSectorInput').value = '';
+    if (document.getElementById('compForecastValueInput')) document.getElementById('compForecastValueInput').value = '';
     document.getElementById('compDealValueInput').value = '';
+    if (document.getElementById('compBudgetReservedSelect')) document.getElementById('compBudgetReservedSelect').value = 'no';
+    if (document.getElementById('compPlannedProjectDateInput')) document.getElementById('compPlannedProjectDateInput').value = '';
     document.getElementById('compInvoiceDateInput').value = '';
-    if (document.getElementById('compContractStatusSelect')) document.getElementById('compContractStatusSelect').value = 'none';
+    if (document.getElementById('compContractStatusSelect')) document.getElementById('compContractStatusSelect').value = '';
     if (document.getElementById('compPaymentDateInput')) document.getElementById('compPaymentDateInput').value = '';
     if (document.getElementById('compDeliveryDateInput')) document.getElementById('compDeliveryDateInput').value = '';
     if (document.getElementById('compCustomProductInput')) document.getElementById('compCustomProductInput').value = '';
@@ -4549,10 +4680,19 @@ class DealRoomApp {
     document.getElementById('compBrandSelect').value = comp.brand;
     document.getElementById('compFunnelSelect').value = comp.funnel_status;
     document.getElementById('compSectorInput').value = comp.sector || '';
+    if (document.getElementById('compForecastValueInput')) {
+      document.getElementById('compForecastValueInput').value = comp.forecast_value || '';
+    }
     document.getElementById('compDealValueInput').value = comp.deal_value || '';
+    if (document.getElementById('compBudgetReservedSelect')) {
+      document.getElementById('compBudgetReservedSelect').value = comp.budget_reserved || 'no';
+    }
+    if (document.getElementById('compPlannedProjectDateInput')) {
+      document.getElementById('compPlannedProjectDateInput').value = comp.planned_project_date || '';
+    }
     document.getElementById('compInvoiceDateInput').value = comp.expected_invoice_date || '';
     if (document.getElementById('compContractStatusSelect')) {
-      document.getElementById('compContractStatusSelect').value = comp.contract_status || 'none';
+      document.getElementById('compContractStatusSelect').value = comp.contract_status || '';
     }
     if (document.getElementById('compPaymentDateInput')) {
       document.getElementById('compPaymentDateInput').value = comp.payment_date || '';
@@ -4579,9 +4719,12 @@ class DealRoomApp {
     const brand = document.getElementById('compBrandSelect').value;
     const funnel_status = document.getElementById('compFunnelSelect').value;
     const sector = document.getElementById('compSectorInput').value.trim();
+    const forecast_value = Number(document.getElementById('compForecastValueInput')?.value || 0);
     const deal_value = Number(document.getElementById('compDealValueInput').value || 0);
+    const budget_reserved = document.getElementById('compBudgetReservedSelect')?.value || 'no';
+    const planned_project_date = (document.getElementById('compPlannedProjectDateInput')?.value || '').trim();
     const expected_invoice_date = document.getElementById('compInvoiceDateInput').value;
-    const contract_status = document.getElementById('compContractStatusSelect')?.value || 'none';
+    const contract_status = document.getElementById('compContractStatusSelect')?.value || '';
     const payment_date = document.getElementById('compPaymentDateInput')?.value || '';
     const delivery_date = document.getElementById('compDeliveryDateInput')?.value || '';
     const checkedProducts = Array.from(document.querySelectorAll('input[name="compProductCheckbox"]:checked')).map(
@@ -4606,7 +4749,10 @@ class DealRoomApp {
           products,
           funnel_status,
           sector,
+          forecast_value,
           deal_value,
+          budget_reserved,
+          planned_project_date,
           expected_invoice_date,
           payment_date,
           delivery_date,
@@ -4630,7 +4776,10 @@ class DealRoomApp {
         funnel_status: 'Addressables',
         stage: 1,
         sector,
+        forecast_value,
         deal_value,
+        budget_reserved,
+        planned_project_date,
         expected_invoice_date,
         payment_date,
         delivery_date,

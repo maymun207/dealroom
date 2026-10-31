@@ -253,11 +253,30 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Tahmini Teklif Tutarı ($)</label>
-            <input type="number" id="compDealValueInput" class="input-field" style="width: 100%;" placeholder="75000" />
+            <label style="font-size: 0.78rem; font-weight: 700; color: #0369A1; display: block; margin-bottom: 4px;">🎯 Potansiyel (Forecast $)</label>
+            <input type="number" id="compForecastValueInput" class="input-field" style="width: 100%;" placeholder="Örn: 50000" />
           </div>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: #047857; display: block; margin-bottom: 4px;">💰 Resmi Teklif Tutarı ($)</label>
+            <input type="number" id="compDealValueInput" class="input-field" style="width: 100%;" placeholder="Teklif verildiyse" />
+          </div>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: #DC2626; display: block; margin-bottom: 4px;">🏦 Bütçe Rezerve mi?</label>
+            <select id="compBudgetReservedSelect" class="select-field" style="width: 100%;">
+              <option value="no">❌ Hayır / Ayrılmadı (Red Flag)</option>
+              <option value="pending">⏳ Onay Sürecinde</option>
+              <option value="yes">✅ Evet — Bütçe Rezerve Edildi</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: #D97706; display: block; margin-bottom: 4px;">🗓️ Planlanan Proje Zamanı</label>
+            <input type="text" id="compPlannedProjectDateInput" class="input-field" style="width: 100%;" placeholder="Örn: 2026 Q2 / Haziran" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
           <div>
             <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Sözleşme Durumu (Draft / Final)</label>
             <select id="compContractStatusSelect" class="select-field" style="width: 100%;">
@@ -470,6 +489,6 @@
     </div>
   </dialog>
 
-  <script src="/app.js?v=20261101b"></script>
+  <script src="/app.js?v=20261101d"></script>
 </body>
 </html>
