@@ -1344,6 +1344,7 @@ dialog::backdrop {
   flex-wrap: wrap;
   gap: 16px;
   margin-top: 8px;
+  padding-bottom: 340px;
 }
 
 .dash-widget-wrapper {
@@ -1392,12 +1393,12 @@ dialog::backdrop {
   box-shadow: 0 6px 18px rgba(22, 181, 234, 0.16);
 }
 
-/* İnce butonun üzerine gelince açılan yüzer Hover Card (Sayfa dışına taşmaması için yukarıya doğru açılır) */
+/* İnce butonun üzerine gelince aşağıya doğru açılan yüzer Hover Card */
 .dash-hover-body {
   display: none;
   position: absolute;
-  bottom: calc(100% + 10px);
-  top: auto;
+  top: calc(100% + 10px);
+  bottom: auto;
   left: 50%;
   transform: translateX(-50%);
   width: 390px;
@@ -1413,7 +1414,8 @@ dialog::backdrop {
 .dash-hover-body::after {
   content: '';
   position: absolute;
-  bottom: -14px;
+  top: -14px;
+  bottom: auto;
   left: 0;
   right: 0;
   height: 14px;
