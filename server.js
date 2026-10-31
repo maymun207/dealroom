@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { execFile } = require('child_process');
 
 // Load .env.local for local development parity with Vercel Environment Variables
 const ENV_LOCAL_PATH = path.join(__dirname, '.env.local');
@@ -84,6 +85,62 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       req.body = body;
       uploadHandler(req, res);
+    });
+    return;
+  }
+
+  // Mac Apple Mail / Outlook Doğrudan Sürükle-Bırak & Seçili Mail Okuma Köprüsü
+  if (pathname === '/api/apple-mail') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const jxaScript = `
+      function run() {
+        var results = [];
+        try {
+          var mailApp = Application('Mail');
+          if (mailApp.running()) {
+            var sel = mailApp.selection();
+            for (var i = 0; i < sel.length; i++) {
+              var m = sel[i];
+              var attNames = [];
+              try {
+                var atts = m.mailAttachments();
+                for (var j = 0; j < atts.length; j++) {
+                  attNames.push(atts[j].name());
+                }
+              } catch (e) {}
+              results.push({
+                subject: m.subject() || 'Konusuz E-posta',
+                sender: m.sender() || '',
+                date: String(m.dateReceived() || ''),
+                content: (m.content() || '').slice(0, 8000),
+                attachments: attNames
+              });
+            }
+          }
+        } catch (err) {}
+        return JSON.stringify({ ok: true, emails: results });
+      }
+    `;
+
+    execFile('osascript', ['-l', 'JavaScript', '-e', jxaScript], { timeout: 8000 }, (err, stdout) => {
+      if (err) {
+        return res.status(200).json({ ok: false, emails: [], error: err.message });
+      }
+      try {
+        const parsed = JSON.parse(stdout.trim() || '{"ok":true,"emails":[]}');
+        return res.status(200).json(parsed);
+      } catch (parseErr) {
+        return res.status(200).json({ ok: false, emails: [] });
+      }
     });
     return;
   }

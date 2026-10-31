@@ -175,6 +175,32 @@ class DealRoomApp {
     };
     document.addEventListener('mouseover', clampHoverCardToViewport);
     document.addEventListener('click', clampHoverCardToViewport);
+
+    // Müşteri odasındayken doğrudan Cmd+V / Ctrl+V ile kopyalanmış mail veya dosyayı Masaüstüne indirmeden yapıştırma
+    document.addEventListener('paste', async (e) => {
+      const activeTag = document.activeElement ? document.activeElement.tagName : '';
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+      if (this.viewMode !== 'company' || !this.selectedCompanyId) return;
+
+      const clipData = e.clipboardData;
+      if (!clipData) return;
+
+      if (clipData.files && clipData.files.length > 0) {
+        e.preventDefault();
+        const comp = this.db.companies.find((c) => c.id === this.selectedCompanyId);
+        if (comp) {
+          await this.handleInstantDropOnCustomerRoom(comp, clipData);
+        }
+        return;
+      }
+
+      const text = (clipData.getData('text/plain') || '').trim();
+      if (text) {
+        e.preventDefault();
+        await this.pasteEmailFromClipboard(this.selectedCompanyId, text);
+      }
+    });
+
     this.render();
   }
 
@@ -2040,16 +2066,41 @@ class DealRoomApp {
               <span style="font-size: 1.35rem;">📥</span>
               <div>
                 <div style="font-weight: 700; font-size: 0.86rem; color: #0D1B3E;">
-                  Müşteriden Gelen / Gönderilen Email, Doküman veya Teklif Dosyasını Buraya Sürükleyip Bırakın
+                  Apple Mail'den Doğrudan Sürükleyin, <code>Cmd+V</code> ile Yapıştırın veya Doküman Bırakın
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">
-                  PDF, Word, Excel, Sunum veya .eml dosyasını sürükleyin ya da tıklayarak Email metnini + ekli dokümanı birlikte kaydedin
+                  Masaüstüne kaydetmeye gerek yok! Apple Mail'den sürükleyin, kopyalayıp yapıştırın veya PDF/Word bırakın
                 </div>
               </div>
             </div>
-            <button type="button" class="btn btn-outline btn-sm" style="background: #FFFFFF; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;">
-              ➕ Email / Doküman Ekle
-            </button>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" onclick="event.stopPropagation()">
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                style="background: #FFFFFF; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;"
+                onclick="window.app.fetchEmailsFromAppleMailBridge('${comp.id}')"
+                title="Apple Mail'de seçili olan e-postaları masaüstüne kaydetmeden doğrudan odaya çeker"
+              >
+                📩 Apple Mail'den Seçili Mailleri Çek
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                style="background: #FFFFFF; font-weight: 700;"
+                onclick="window.app.pasteEmailFromClipboard('${comp.id}')"
+                title="Kopyaladığınız (Cmd+C) mail metnini tek tıkla odaya kaydeder"
+              >
+                📋 Kopyalanan Maili Yapıştır
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                style="background: #FFFFFF;"
+                onclick="window.app.openTimelineModal('${comp.id}')"
+              >
+                ➕ Elle Ekle
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -2287,10 +2338,36 @@ class DealRoomApp {
       <div class="dropzone-box" id="roomDropzone" style="background: #FFFFFF;" onclick="window.app.openTimelineModal('${comp.id}')">
         <div style="font-size: 1.3rem; margin-bottom: 4px;">📥</div>
         <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary);">
-          Teklif PDF, Revizyon, Sözleşme, Doküman veya Masaüstündeki Email (.eml) Dosyalarını Buraya Sürükleyip Bırakın (Çoklu Dosya Destekler)
+          Apple Mail'den Doğrudan Sürükleyin, <code>Cmd+V</code> ile Yapıştırın veya Doküman (PDF, Word, Excel) Bırakın
         </div>
-        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">
-          Dosyaları bıraktığınız anda <strong>otomatik yüklenir ve kaydedilir</strong> — veya tıklayarak Email metnini yapıştırıp ek dosya seçin
+        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px;">
+          Masaüstüne kaydetmeye gerek olmadan doğrudan Apple Mail'den sürükleyebilir veya aşağıdaki tek tık butonlarını kullanabilirsiniz:
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;" onclick="event.stopPropagation()">
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            style="background: #FFFFFF; border-color: #16B5EA; color: #0D1B3E; font-weight: 700;"
+            onclick="window.app.fetchEmailsFromAppleMailBridge('${comp.id}')"
+          >
+            📩 Apple Mail'de Seçili Mailleri Tek Tıkla Çek
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            style="background: #FFFFFF; font-weight: 700;"
+            onclick="window.app.pasteEmailFromClipboard('${comp.id}')"
+          >
+            📋 Panodaki (Kopyalanan) Maili Anında Kaydet
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            style="background: #FFFFFF;"
+            onclick="window.app.openTimelineModal('${comp.id}')"
+          >
+            ➕ Form Aç (Not + Dosya)
+          </button>
         </div>
       </div>
 
@@ -3353,16 +3430,139 @@ class DealRoomApp {
       return;
     }
 
-    // DURUM 3: Apple Mail / Outlook'tan doğrudan liste satırı sürüklendiğinde (Mac OS 'message://' linki gönderir, dosyayı vermez!)
+    // DURUM 3: Apple Mail'den doğrudan liste satırı sürüklendiğinde Masaüstüne indirmeye gerek kalmadan Apple Mail Köprüsü ile çek!
+    await this.fetchEmailsFromAppleMailBridge(comp.id);
+  }
+
+  async fetchEmailsFromAppleMailBridge(compId) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+
+    this.uploadStatusType = 'loading';
+    this.uploadStatusMessage = '⏳ Apple Mail\'de seçili/sürüklenen mailler doğrudan okunuyor (Masaüstüne kaydetmeye gerek yok)...';
+    this.render();
+
+    const endpoints = ['/api/apple-mail', 'http://localhost:3000/api/apple-mail'];
+    let bridgeData = null;
+
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.ok && Array.isArray(json.emails)) {
+            bridgeData = json;
+            break;
+          }
+        }
+      } catch (_err) {
+        // Diğer adresi dene
+      }
+    }
+
+    if (bridgeData && bridgeData.emails.length > 0) {
+      comp.timeline = comp.timeline || [];
+      const savedTitles = [];
+
+      for (const mail of bridgeData.emails) {
+        const subj = (mail.subject || 'Apple Mail E-postası').trim();
+        const sender = (mail.sender || '').trim();
+        const dateStr = (mail.date || '').trim();
+        const attNames = Array.isArray(mail.attachments) && mail.attachments.length > 0 ? mail.attachments.join(', ') : '';
+        const bodyClean = (mail.content || '').trim().slice(0, 6000);
+
+        const headerLines = [];
+        if (sender) headerLines.push(`Kimden: ${sender}`);
+        if (dateStr) headerLines.push(`Tarih: ${dateStr}`);
+        if (attNames) headerLines.push(`Ekli Dosyalar: ${attNames}`);
+
+        const fullContent = [headerLines.join(' | '), bodyClean].filter(Boolean).join('\n\n');
+
+        comp.timeline.unshift({
+          id: 't-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          type: 'email',
+          title: `📩 ${subj}`,
+          content: fullContent,
+          amount: '',
+          file_name: attNames ? `📎 ${attNames}` : '',
+          file_size: '',
+          file_url: '',
+          author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
+          created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
+        });
+        savedTitles.push(subj);
+      }
+
+      this.autoEvaluateCompanyFunnel(comp);
+      await this.persistDatabase();
+      this.uploadStatusType = 'success';
+      this.uploadStatusMessage = `✅ Apple Mail'den ${savedTitles.length} e-posta (${savedTitles.join(', ')}) Masaüstüne indirilmeden doğrudan "${comp.name}" odasına kaydedildi!`;
+      this.render();
+      return;
+    }
+
+    if (bridgeData && bridgeData.emails.length === 0) {
+      this.uploadStatusType = 'error';
+      this.uploadStatusMessage =
+        '⚠️ Apple Mail\'de şu an seçili bir e-posta bulunamadı. Lütfen Apple Mail\'de ilgili mail(ler)e tıklayıp seçin ve tekrar sürükleyin veya "📩 Apple Mail\'de Seçili Mailleri Tek Tıkla Çek" butonuna basın.';
+      this.render();
+      return;
+    }
+
+    // Eğer bulut sekmesinden bağlanılıyorsa ve yerel köprü yanıt vermediyse Panodan (Clipboard) okumayı dene
     this.uploadStatusType = 'error';
     this.uploadStatusMessage =
-      '⚠️ Apple Mail / Outlook Kısıtı: Mail listesini doğrudan tarayıcıya sürüklediğinizde Mac güvenlik duvarı mail içeriğini tarayıcıya iletmez (Dosya alınmadı). Çözüm: (1) Maili önce Masaüstüne sürükleyip (.eml olur) oradan buraya bırakın VEYA (2) Açılan pencereye mail metnini kopyalayıp (Cmd+C / Cmd+V) yapıştırın ve ekli PDF/Word dosyasını sürükleyin.';
+      '💡 Masaüstüne kaydetmeden eklemek için: Mailin içindeyken Cmd+A ve Cmd+C ile kopyalayıp bu sayfada doğrudan Cmd+V yapın (veya "📋 Kopyalanan Maili Yapıştır" butonuna tıklayın).';
     this.render();
-    this.openTimelineModal(comp.id);
-    const titleEl = document.getElementById('tlTitleInput');
-    if (titleEl && droppedUri.startsWith('message:')) {
-      titleEl.placeholder = 'Mail konusunu yazın ve aşağıya mail metnini (Cmd+V) yapıştırın...';
+  }
+
+  async pasteEmailFromClipboard(compId, directText = null) {
+    const comp = this.db.companies.find((c) => c.id === compId);
+    if (!comp) return;
+
+    let text = directText;
+    if (!text && navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        text = (await navigator.clipboard.readText()).trim();
+      } catch (_err) {
+        // Tarayıcı izin vermezse modal açıp Cmd+V yaptır
+      }
     }
+
+    if (!text) {
+      this.uploadStatusType = 'error';
+      this.uploadStatusMessage =
+        '📋 Lütfen önce mail programınızda maili kopyalayın (Cmd+C), ardından bu sayfada klavyeden doğrudan Cmd+V tuşlarına basın!';
+      this.render();
+      return;
+    }
+
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    let title = lines[0] ? lines[0].slice(0, 80) : 'Yapıştırılan E-posta';
+    const subjLine = lines.find((l) => /^(Subject|Konu)\s*:/i.test(l));
+    if (subjLine) {
+      title = subjLine.replace(/^(Subject|Konu)\s*:\s*/i, '').trim().slice(0, 85);
+    }
+
+    comp.timeline = comp.timeline || [];
+    comp.timeline.unshift({
+      id: 't-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      type: 'email',
+      title: `📩 ${title}`,
+      content: text.slice(0, 6000),
+      amount: '',
+      file_name: '',
+      file_size: '',
+      file_url: '',
+      author: this.currentSeller ? this.currentSeller.name : 'Satıcı',
+      created_at: new Date().toLocaleString('tr-TR').slice(0, 16)
+    });
+
+    this.autoEvaluateCompanyFunnel(comp);
+    await this.persistDatabase();
+    this.uploadStatusType = 'success';
+    this.uploadStatusMessage = `✅ Kopyalanan e-posta ("${title}") Masaüstüne indirilmeden doğrudan "${comp.name}" odasına kaydedildi!`;
+    this.render();
   }
 
   applyDroppedFileToOpenTimelineModal(droppedFile) {
